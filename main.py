@@ -226,7 +226,7 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
         if args.local_rank in [-1, 0]:
             args.writer.add_scalar("lr", get_lr(s_optimizer))
 
-        if args.local_rank in [-1, 0]:
+        if step % args.eval_step == 0 and args.local_rank in [-1, 0]:
             args.writer.add_scalar("loss/s_loss", s_losses.avg)
             args.writer.add_scalar("loss/t_loss", t_losses.avg)
             args.writer.add_scalar("loss/t_labeled", t_losses_l.avg)
@@ -234,29 +234,30 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             args.writer.add_scalar("loss/t_mpl", t_losses_mpl.avg)
             args.writer.add_scalar("loss/mask", mean_mask.avg)
 
-        if step+1 % args.eval_step == 0 and args.local_rank in [-1, 0]:
+        if step+1 % args.eval_step == 0:
             pbar.close()
-            test_model = avg_student_model if avg_student_model is not None else student_model
-            losses, top1, top5 = evaluate(args, test_loader, test_model, criterion)
-            is_best = top1 > args.best_top1
-            if is_best:
-                args.best_top1 = top1
-                args.best_top5 = top5
-            save_checkpoint(args, {
-                'step': step + 1,
-                'arch': args.arch,
-                'teacher_state_dict': teacher_model.state_dict(),
-                'student_state_dict': student_model.state_dict(),
-                'avg_state_dict': avg_student_model.state_dict() if avg_student_model is not None else None,
-                'best_top1': args.best_top1,
-                'best_top5': args.best_top5,
-                'teacher_optimizer': t_optimizer.state_dict(),
-                'student_optimizer': s_optimizer.state_dict(),
-                'teacher_scheduler': t_scheduler.state_dict(),
-                'student_scheduler': s_scheduler.state_dict(),
-                'teacher_scaler': t_scaler.state_dict(),
-                'student_scaler': s_scaler.state_dict(),
-            }, is_best)
+            if args.local_rank in [-1, 0]:
+                test_model = avg_student_model if avg_student_model is not None else student_model
+                losses, top1, top5 = evaluate(args, test_loader, test_model, criterion)
+                is_best = top1 > args.best_top1
+                if is_best:
+                    args.best_top1 = top1
+                    args.best_top5 = top5
+                save_checkpoint(args, {
+                    'step': step + 1,
+                    'arch': args.arch,
+                    'teacher_state_dict': teacher_model.state_dict(),
+                    'student_state_dict': student_model.state_dict(),
+                    'avg_state_dict': avg_student_model.state_dict() if avg_student_model is not None else None,
+                    'best_top1': args.best_top1,
+                    'best_top5': args.best_top5,
+                    'teacher_optimizer': t_optimizer.state_dict(),
+                    'student_optimizer': s_optimizer.state_dict(),
+                    'teacher_scheduler': t_scheduler.state_dict(),
+                    'student_scheduler': s_scheduler.state_dict(),
+                    'teacher_scaler': t_scaler.state_dict(),
+                    'student_scaler': s_scaler.state_dict(),
+                }, is_best)
     return
 
 
