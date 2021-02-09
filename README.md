@@ -7,5 +7,5 @@ The official Tensorflow implementation is [here](https://github.com/google-resea
 |  | CIFAR-10-4K | SVHN-1K | ImageNet-10% |
 |:---:|:---:|:---:|:---:|
 | Paper | 96.11 ± 0.07 | 98.01 ± 0.07 | 73.89 |
-| This code | WIP | WIP | WIP |
-| Acc. curve | WIP | WIP | WIP |
+| This code | WIP | - | - |
+| Acc. curve | WIP | - | - |
