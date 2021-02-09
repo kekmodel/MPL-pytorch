@@ -245,7 +245,6 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
                     args.best_top5 = top5
                 save_checkpoint(args, {
                     'step': step + 1,
-                    'arch': args.arch,
                     'teacher_state_dict': teacher_model.state_dict(),
                     'student_state_dict': student_model.state_dict(),
                     'avg_state_dict': avg_student_model.state_dict() if avg_student_model is not None else None,
