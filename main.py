@@ -321,14 +321,11 @@ def main():
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO if args.local_rank in [-1, 0] else logging.WARN)
 
-
-train
-train
-   logger.warning(
+   logger.info(
         f"Process rank: {args.local_rank}, "
         f"device: {args.device}, "
         f"distributed training: {bool(args.local_rank != -1)}, "
-        f"16-bits training: {args.amp}",)
+        f"16-bits training: {args.amp}")
 
     logger.info(dict(args._get_kwargs()))
 
@@ -339,9 +336,7 @@ train
         set_seed(args)
 
     labeled_dataset, unlabeled_dataset, test_dataset = DATASET_GETTERS[args.dataset](args)
-train
-train
-   train_sampler = RandomSampler if args.local_rank == -1 else DistributedSampler
+    train_sampler = RandomSampler if args.local_rank == -1 else DistributedSampler
     labeled_loader = DataLoader(
         labeled_dataset,
         sampler=train_sampler(labeled_dataset),
@@ -356,9 +351,7 @@ train
         num_workers=args.workers,
         drop_last=True)
 
-    test_loader = DataLoader(train
-                             train
-                             test_dataset,
+    test_loader = DataLoader(test_dataset,
                              sampler=SequentialSampler(test_dataset),
                              batch_size=args.batch_size,
                              num_workers=args.workers)
@@ -371,8 +364,7 @@ train
 
     teacher_model = build_wideresnet(args, depth=28, widen_factor=2)
     student_model = build_wideresnet(args, depth=28, widen_factor=2)
-train
-train
+
    if args.local_rank == 0:
         torch.distributed.barrier()
 
@@ -387,8 +379,7 @@ train
                             lr=args.lr,
                             momentum=args.momentum,
                             weight_decay=args.weight_decay,
-                            nesterov=args.nesterov)train
-train
+                            nesterov=args.nesterov)
    s_optimizer = optim.SGD(student_model.parameters(),
                             lr=args.lr,
                             momentum=args.momentum,
