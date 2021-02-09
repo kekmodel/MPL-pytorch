@@ -109,7 +109,6 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
 
     for step in range(args.start_step, args.total_steps):
         if step % args.eval_step == 0:
-            logger.info("create pbar")
             pbar = tqdm(range(args.eval_step), disable=args.local_rank not in [-1, 0])
             batch_time = AverageMeter()
             data_time = AverageMeter()
@@ -237,7 +236,6 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
 
         if (step+1) % args.eval_step == 0:
             pbar.close()
-            logger.info("close pbar")
             if args.local_rank in [-1, 0]:
                 test_model = avg_student_model if avg_student_model is not None else student_model
                 losses, top1, top5 = evaluate(args, test_loader, test_model, criterion)
@@ -278,7 +276,6 @@ def evaluate(args, test_loader, model, criterion):
     top5 = AverageMeter()
     model.eval()
     test_iter = tqdm(test_loader, disable=args.local_rank not in [-1, 0])
-    logger.info("create test_iter")
     with torch.no_grad():
         end = time.time()
         for step, (images, targets) in enumerate(test_iter):
@@ -297,7 +294,6 @@ def evaluate(args, test_loader, model, criterion):
                 f"top1: {top1.avg:.2f}. top5: {top5.avg:.2f}. ")
 
         test_iter.close()
-        logger.info("close test_iter")
         if args.local_rank in [-1, 0]:
             args.writer.add_scalar("loss/val", losses.avg)
 
