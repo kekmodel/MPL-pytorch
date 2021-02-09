@@ -56,6 +56,7 @@ parser.add_argument('--mu', default=7, type=int, help='coefficient of unlabeled 
 parser.add_argument('--threshold', default=0.95, type=float, help='pseudo label threshold')
 parser.add_argument('--temperature', default=1, type=float, help='pseudo label temperature')
 parser.add_argument('--lambda-u', default=1, type=float, help='coefficient of unlabeled loss')
+parser.add_argument('--uda-step', default=1, type=float, help='warmup steps of lambda-u')
 parser.add_argument("--randaug", nargs="+", type=int, help="use it like this. --randaug 2 10")
 parser.add_argument("--amp", action="store_true", help="use 16-bit (mixed) precision")
 parser.add_argument('--world-size', default=-1, type=int,
@@ -163,7 +164,8 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             t_loss_u = torch.mean(
                 -(soft_pseudo_label * torch.log_softmax(t_logits_us, dim=-1)).sum(dim=-1) * mask
             )
-            t_loss_uda = t_loss_l + args.lambda_u * t_loss_u
+            weight_u = args.lambda_u * min(1., step / args.uda_step)
+            t_loss_uda = t_loss_l + weight_u * t_loss_u
 
             s_images = torch.cat((images_l, images_us))
             s_logits = student_model(s_images)
@@ -249,6 +251,10 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
                 if is_best:
                     args.best_top1 = top1
                     args.best_top5 = top5
+
+                logger.info(f"top-1 acc: {top1:.2f}")
+                logger.info(f"Best top-1 acc: {args.best_top1:.2f}")
+
                 save_checkpoint(args, {
                     'step': step + 1,
                     'teacher_state_dict': teacher_model.state_dict(),
@@ -361,9 +367,6 @@ def main():
                              batch_size=args.batch_size,
                              num_workers=args.workers)
 
-    if args.local_rank in [-1, 0]:
-        print(f"Training Steps: {args.total_steps}")
-
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()
 
@@ -404,7 +407,7 @@ def main():
     # optionally resume from a checkpoint
     if args.resume:
         if os.path.isfile(args.resume):
-            print(f"=> loading checkpoint '{args.resume}'")
+            logger.info(f"=> loading checkpoint '{args.resume}'")
             loc = f'cuda:{args.gpu}'
             checkpoint = torch.load(args.resume, map_location=loc)
             args.start_step = checkpoint['step']
@@ -429,9 +432,9 @@ def main():
                     avg_student_model.load_state_dict(checkpoint['avg_state_dict'])
                 except:
                     module_load_state_dict(avg_student_model, checkpoint['avg_state_dict'])
-            print(f"=> loaded checkpoint '{args.resume}' (step {checkpoint['step']})")
+            logger.info(f"=> loaded checkpoint '{args.resume}' (step {checkpoint['step']})")
         else:
-            print(f"=> no checkpoint found at '{args.resume}'")
+            logger.info(f"=> no checkpoint found at '{args.resume}'")
 
     if args.local_rank != -1:
         teacher_model = nn.parallel.DistributedDataParallel(
@@ -446,6 +449,10 @@ def main():
             student_model = avg_student_model
         evaluate(args, test_loader, student_model, criterion)
         return
+
+    logger.info("***** Running Training *****")
+    logger.info(f"  Task = {args.dataset}@{args.num_labeled}")
+    logger.info(f"  Total optimization steps = {args.total_steps}")
 
     teacher_model.zero_grad()
     student_model.zero_grad()
