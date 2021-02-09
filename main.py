@@ -230,12 +230,12 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
         if (step+1) % args.eval_step == 0:
             pbar.close()
             if args.local_rank in [-1, 0]:
-                args.writer.add_scalar("loss/s_loss", s_losses.avg, args.num_eval)
-                args.writer.add_scalar("loss/t_loss", t_losses.avg, args.num_eval)
-                args.writer.add_scalar("loss/t_labeled", t_losses_l.avg, args.num_eval)
-                args.writer.add_scalar("loss/t_unlabeled", t_losses_u.avg, args.num_eval)
-                args.writer.add_scalar("loss/t_mpl", t_losses_mpl.avg, args.num_eval)
-                args.writer.add_scalar("loss/mask", mean_mask.avg, args.num_eval)
+                args.writer.add_scalar("train/1.s_loss", s_losses.avg, args.num_eval)
+                args.writer.add_scalar("train/2.t_loss", t_losses.avg, args.num_eval)
+                args.writer.add_scalar("train/3.t_labeled", t_losses_l.avg, args.num_eval)
+                args.writer.add_scalar("train/4.t_unlabeled", t_losses_u.avg, args.num_eval)
+                args.writer.add_scalar("train/5.t_mpl", t_losses_mpl.avg, args.num_eval)
+                args.writer.add_scalar("train/6.mask", mean_mask.avg, args.num_eval)
 
                 test_model = avg_student_model if avg_student_model is not None else student_model
                 losses, top1, top5 = evaluate(args, test_loader, test_model, criterion)
@@ -295,7 +295,8 @@ def evaluate(args, test_loader, model, criterion):
 
         test_iter.close()
         if args.local_rank in [-1, 0]:
-            args.writer.add_scalar("loss/val", losses.avg, args.num_eval)
+            args.writer.add_scalar("test/acc@1", top1.avg, args.num_eval)
+            args.writer.add_scalar("test/acc@5", top5.avg, args.num_eval)
 
         return losses.avg, top1.avg, top5.avg
 
@@ -320,7 +321,10 @@ def main():
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO if args.local_rank in [-1, 0] else logging.WARN)
 
-    logger.warning(
+
+train
+train
+   logger.warning(
         f"Process rank: {args.local_rank}, "
         f"device: {args.device}, "
         f"distributed training: {bool(args.local_rank != -1)}, "
@@ -335,8 +339,9 @@ def main():
         set_seed(args)
 
     labeled_dataset, unlabeled_dataset, test_dataset = DATASET_GETTERS[args.dataset](args)
-
-    train_sampler = RandomSampler if args.local_rank == -1 else DistributedSampler
+train
+train
+   train_sampler = RandomSampler if args.local_rank == -1 else DistributedSampler
     labeled_loader = DataLoader(
         labeled_dataset,
         sampler=train_sampler(labeled_dataset),
@@ -351,11 +356,12 @@ def main():
         num_workers=args.workers,
         drop_last=True)
 
-    test_loader = DataLoader(
-        test_dataset,
-        sampler=SequentialSampler(test_dataset),
-        batch_size=args.batch_size,
-        num_workers=args.workers)
+    test_loader = DataLoader(train
+                             train
+                             test_dataset,
+                             sampler=SequentialSampler(test_dataset),
+                             batch_size=args.batch_size,
+                             num_workers=args.workers)
 
     if args.local_rank in [-1, 0]:
         print(f"Training Steps: {args.total_steps}")
@@ -365,8 +371,9 @@ def main():
 
     teacher_model = build_wideresnet(args, depth=28, widen_factor=2)
     student_model = build_wideresnet(args, depth=28, widen_factor=2)
-
-    if args.local_rank == 0:
+train
+train
+   if args.local_rank == 0:
         torch.distributed.barrier()
 
     teacher_model.to(args.device)
@@ -380,8 +387,9 @@ def main():
                             lr=args.lr,
                             momentum=args.momentum,
                             weight_decay=args.weight_decay,
-                            nesterov=args.nesterov)
-    s_optimizer = optim.SGD(student_model.parameters(),
+                            nesterov=args.nesterov)train
+train
+   s_optimizer = optim.SGD(student_model.parameters(),
                             lr=args.lr,
                             momentum=args.momentum,
                             weight_decay=args.weight_decay,
