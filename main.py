@@ -234,7 +234,7 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             args.writer.add_scalar("loss/t_mpl", t_losses_mpl.avg)
             args.writer.add_scalar("loss/mask", mean_mask.avg)
 
-        if step+1 % args.eval_step == 0:
+        if step != 0 and step % args.eval_step == 0:
             pbar.close()
             if args.local_rank in [-1, 0]:
                 test_model = avg_student_model if avg_student_model is not None else student_model
@@ -275,7 +275,6 @@ def evaluate(args, test_loader, model, criterion):
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
-    acc_mat = torch.zeros(args.num_classes, args.num_classes)
     model.eval()
     test_loader = tqdm(test_loader, disable=args.local_rank not in [-1, 0])
     with torch.no_grad():
@@ -284,7 +283,7 @@ def evaluate(args, test_loader, model, criterion):
             batch_size = targets.shape[0]
             data_time.update(time.time() - end)
             loss, output = evaluation_step(args, model, criterion, images, targets)
-            acc1, acc5 = accuracy(output, targets, acc_mat, (1, 5))
+            acc1, acc5 = accuracy(output, targets, (1, 5))
             losses.update(loss.item(), batch_size)
             top1.update(acc1[0], batch_size)
             top5.update(acc5[0], batch_size)
