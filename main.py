@@ -224,7 +224,6 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
         mean_mask.update(mask.mean().item())
 
         batch_time.update(time.time() - end)
-        end = time.time()
         pbar.set_description(
             f"Train Iter: {step+1:3}/{args.total_steps:3}. "
             f"LR: {get_lr(s_optimizer):.4f}. Data: {data_time.avg:.2f}s. "
@@ -283,9 +282,8 @@ def evaluate(args, test_loader, model, criterion):
     with torch.no_grad():
         end = time.time()
         for step, (images, targets) in enumerate(test_iter):
-            batch_size = targets.shape[0]
             data_time.update(time.time() - end)
-
+            batch_size = targets.shape[0]
             images = images.to(args.device)
             targets = targets.to(args.device)
             with amp.autocast(enabled=args.amp):
