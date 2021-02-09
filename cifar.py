@@ -17,9 +17,6 @@ cifar100_std = (0.2675, 0.2565, 0.2761)
 normal_mean = (0.5, 0.5, 0.5)
 normal_std = (0.5, 0.5, 0.5)
 
-DATASET_GETTERS = {'cifar10': get_cifar10,
-                   'cifar100': get_cifar100}
-
 
 def get_cifar10(args):
     transform_labeled = transforms.Compose([
@@ -182,3 +179,7 @@ class CIFAR100SSL(datasets.CIFAR100):
             target = self.target_transform(target)
 
         return img, target
+
+
+DATASET_GETTERS = {'cifar10': get_cifar10,
+                   'cifar100': get_cifar100}
