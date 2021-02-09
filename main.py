@@ -225,8 +225,6 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
         if args.local_rank in [-1, 0]:
             args.writer.add_scalar("lr", get_lr(s_optimizer))
 
-        if step+1 % args.eval_step == 0:
-            pbar.close()
         if args.local_rank in [-1, 0]:
             args.writer.add_scalar("loss/s_loss", s_losses.avg)
             args.writer.add_scalar("loss/t_loss", t_losses.avg)
@@ -235,29 +233,29 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             args.writer.add_scalar("loss/t_mpl", t_losses_mpl.avg)
             args.writer.add_scalar("loss/mask", mean_mask.avg)
 
-        if args.local_rank in [-1, 0]:
+        if step+1 % args.eval_step == 0 and args.local_rank in [-1, 0]:
+            pbar.close()
             test_model = avg_student_model if avg_student_model is not None else student_model
             losses, top1, top5 = evaluate(args, test_loader, test_model, criterion)
             is_best = top1 > args.best_top1
             if is_best:
                 args.best_top1 = top1
                 args.best_top5 = top5
-            if args.k_fold is None and args.local_rank in [-1, 0]:
-                save_checkpoint(args, {
-                    'step': step + 1,
-                    'arch': args.arch,
-                    'teacher_state_dict': teacher_model.state_dict(),
-                    'student_state_dict': student_model.state_dict(),
-                    'avg_state_dict': avg_student_model.state_dict() if avg_student_model is not None else None,
-                    'best_top1': args.best_top1,
-                    'best_top5': args.best_top5,
-                    'teacher_optimizer': t_optimizer.state_dict(),
-                    'student_optimizer': s_optimizer.state_dict(),
-                    'teacher_scheduler': t_scheduler.state_dict(),
-                    'student_scheduler': s_scheduler.state_dict(),
-                    'teacher_scaler': t_scaler.state_dict(),
-                    'student_scaler': s_scaler.state_dict(),
-                }, is_best)
+            save_checkpoint(args, {
+                'step': step + 1,
+                'arch': args.arch,
+                'teacher_state_dict': teacher_model.state_dict(),
+                'student_state_dict': student_model.state_dict(),
+                'avg_state_dict': avg_student_model.state_dict() if avg_student_model is not None else None,
+                'best_top1': args.best_top1,
+                'best_top5': args.best_top5,
+                'teacher_optimizer': t_optimizer.state_dict(),
+                'student_optimizer': s_optimizer.state_dict(),
+                'teacher_scheduler': t_scheduler.state_dict(),
+                'student_scheduler': s_scheduler.state_dict(),
+                'teacher_scaler': t_scaler.state_dict(),
+                'student_scaler': s_scaler.state_dict(),
+            }, is_best)
     return
 
 
@@ -280,11 +278,11 @@ def evaluate(args, test_loader, model, criterion):
     test_loader = tqdm(test_loader, disable=args.local_rank not in [-1, 0])
     with torch.no_grad():
         end = time.time()
-        for step, (path, images, targets) in enumerate(test_loader):
+        for step, (images, targets) in enumerate(test_loader):
             batch_size = targets.shape[0]
             data_time.update(time.time() - end)
             loss, output = evaluation_step(args, model, criterion, images, targets)
-            acc1, acc5 = accuracy(path, output, targets, acc_mat, (1, 5), args.do_debug)
+            acc1, acc5 = accuracy(output, targets, acc_mat, (1, 5))
             losses.update(loss.item(), batch_size)
             top1.update(acc1[0], batch_size)
             top5.update(acc5[0], batch_size)
