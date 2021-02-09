@@ -133,13 +133,13 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             images_l, targets = labeled_iter.next()
 
         try:
-            images_uw, images_us, _ = unlabeled_iter.next()
+            (images_uw, images_us), _ = unlabeled_iter.next()
         except:
             if args.world_size > 1:
                 unlabeled_epoch += 1
                 unlabeled_loader.sampler.set_epoch(unlabeled_epoch)
             unlabeled_iter = iter(unlabeled_loader)
-            images_uw, images_us, _ = unlabeled_iter.next()
+            (images_uw, images_us), _ = unlabeled_iter.next()
 
         data_time.update(time.time() - end)
 
