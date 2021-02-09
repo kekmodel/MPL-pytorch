@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', type=str, required=True, help='experiment name')
-parser.add_argument('--data-path', type=str, required=True, help='data path')
+parser.add_argument('--data-path', default='./data', type=str, help='data path')
 parser.add_argument('--save-path', default='./checkpoint', type=str, help='save path')
 parser.add_argument('--dataset', default='cifar10', type=str,
                     choices=['cifar10', 'cifar100'], help='dataset name')
@@ -451,8 +451,8 @@ def main():
         return
 
     logger.info("***** Running Training *****")
-    logger.info(f"  Task = {args.dataset}@{args.num_labeled}")
-    logger.info(f"  Total steps = {args.total_steps}")
+    logger.info(f"   Task = {args.dataset}@{args.num_labeled}")
+    logger.info(f"   Total steps = {args.total_steps}")
 
     teacher_model.zero_grad()
     student_model.zero_grad()
