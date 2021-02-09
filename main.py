@@ -224,15 +224,16 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             f"T_Loss: {t_losses.avg:.4f}. Mask: {mean_mask.avg:.4f}. ")
         pbar.update()
         if args.local_rank in [-1, 0]:
-            args.writer.add_scalar("lr", get_lr(s_optimizer))
+            args.writer.add_scalar("lr", get_lr(s_optimizer), step)
 
+        args.num_eval = step//args.eval_step
         if step % args.eval_step == 0 and args.local_rank in [-1, 0]:
-            args.writer.add_scalar("loss/s_loss", s_losses.avg)
-            args.writer.add_scalar("loss/t_loss", t_losses.avg)
-            args.writer.add_scalar("loss/t_labeled", t_losses_l.avg)
-            args.writer.add_scalar("loss/t_unlabeled", t_losses_u.avg)
-            args.writer.add_scalar("loss/t_mpl", t_losses_mpl.avg)
-            args.writer.add_scalar("loss/mask", mean_mask.avg)
+            args.writer.add_scalar("loss/s_loss", s_losses.avg, args.num_eval)
+            args.writer.add_scalar("loss/t_loss", t_losses.avg, args.num_eval)
+            args.writer.add_scalar("loss/t_labeled", t_losses_l.avg, args.num_eval)
+            args.writer.add_scalar("loss/t_unlabeled", t_losses_u.avg, args.num_eval)
+            args.writer.add_scalar("loss/t_mpl", t_losses_mpl.avg, args.num_eval)
+            args.writer.add_scalar("loss/mask", mean_mask.avg, args.num_eval)
 
         if (step+1) % args.eval_step == 0:
             pbar.close()
@@ -295,7 +296,7 @@ def evaluate(args, test_loader, model, criterion):
 
         test_iter.close()
         if args.local_rank in [-1, 0]:
-            args.writer.add_scalar("loss/val", losses.avg)
+            args.writer.add_scalar("loss/val", losses.avg, args.num_eval)
 
         return losses.avg, top1.avg, top5.avg
 
