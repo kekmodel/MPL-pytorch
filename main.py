@@ -17,10 +17,10 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from .cifar import DATASET_GETTERS
-from .models import build_wideresnet, ModelEMA
-from .utils import (AverageMeter, accuracy, create_loss_fn,
-                    save_checkpoint, reduce_tensor, module_load_state_dict)
+from cifar import DATASET_GETTERS
+from models import build_wideresnet, ModelEMA
+from utils import (AverageMeter, accuracy, create_loss_fn,
+                   save_checkpoint, reduce_tensor, module_load_state_dict)
 
 logger = logging.getLogger(__name__)
 
