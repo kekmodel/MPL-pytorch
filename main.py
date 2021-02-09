@@ -350,6 +350,10 @@ def main():
         torch.distributed.barrier()
 
     labeled_dataset, unlabeled_dataset, test_dataset = DATASET_GETTERS[args.dataset](args)
+
+    if args.local_rank == 0:
+        torch.distributed.barrier()
+
     train_sampler = RandomSampler if args.local_rank == -1 else DistributedSampler
     labeled_loader = DataLoader(
         labeled_dataset,
@@ -369,6 +373,9 @@ def main():
                              sampler=SequentialSampler(test_dataset),
                              batch_size=args.batch_size,
                              num_workers=args.workers)
+
+    if args.local_rank not in [-1, 0]:
+        torch.distributed.barrier()
 
     teacher_model = build_wideresnet(args, depth=28, widen_factor=2)
     student_model = build_wideresnet(args, depth=28, widen_factor=2)
