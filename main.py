@@ -350,7 +350,7 @@ def main():
         unlabeled_dataset,
         sampler=train_sampler(unlabeled_dataset),
         batch_size=args.batch_size*args.mu,
-        num_workers=args.num_workers,
+        num_workers=args.workers,
         drop_last=True)
 
     test_loader = DataLoader(
