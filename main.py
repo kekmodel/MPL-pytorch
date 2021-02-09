@@ -398,7 +398,7 @@ def main():
                                                   args.warmup_steps,
                                                   args.total_steps)
     s_scheduler = get_cosine_schedule_with_warmup(s_optimizer,
-                                                  args.warmup_steps,
+                                                  0,
                                                   args.total_steps)
 
     t_scaler = amp.GradScaler(enabled=args.amp)
@@ -452,7 +452,7 @@ def main():
 
     logger.info("***** Running Training *****")
     logger.info(f"  Task = {args.dataset}@{args.num_labeled}")
-    logger.info(f"  Total optimization steps = {args.total_steps}")
+    logger.info(f"  Total steps = {args.total_steps}")
 
     teacher_model.zero_grad()
     student_model.zero_grad()
