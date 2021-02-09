@@ -227,17 +227,16 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             args.writer.add_scalar("lr", get_lr(s_optimizer), step)
 
         args.num_eval = step//args.eval_step
-        if step % args.eval_step == 0 and args.local_rank in [-1, 0]:
-            args.writer.add_scalar("loss/s_loss", s_losses.avg, args.num_eval)
-            args.writer.add_scalar("loss/t_loss", t_losses.avg, args.num_eval)
-            args.writer.add_scalar("loss/t_labeled", t_losses_l.avg, args.num_eval)
-            args.writer.add_scalar("loss/t_unlabeled", t_losses_u.avg, args.num_eval)
-            args.writer.add_scalar("loss/t_mpl", t_losses_mpl.avg, args.num_eval)
-            args.writer.add_scalar("loss/mask", mean_mask.avg, args.num_eval)
-
         if (step+1) % args.eval_step == 0:
             pbar.close()
             if args.local_rank in [-1, 0]:
+                args.writer.add_scalar("loss/s_loss", s_losses.avg, args.num_eval)
+                args.writer.add_scalar("loss/t_loss", t_losses.avg, args.num_eval)
+                args.writer.add_scalar("loss/t_labeled", t_losses_l.avg, args.num_eval)
+                args.writer.add_scalar("loss/t_unlabeled", t_losses_u.avg, args.num_eval)
+                args.writer.add_scalar("loss/t_mpl", t_losses_mpl.avg, args.num_eval)
+                args.writer.add_scalar("loss/mask", mean_mask.avg, args.num_eval)
+
                 test_model = avg_student_model if avg_student_model is not None else student_model
                 losses, top1, top5 = evaluate(args, test_loader, test_model, criterion)
                 is_best = top1 > args.best_top1
