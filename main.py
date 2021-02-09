@@ -17,7 +17,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from cifar import DATASET_GETTERS
+from data import DATASET_GETTERS
 from models import build_wideresnet, ModelEMA
 from utils import (AverageMeter, accuracy, create_loss_fn,
                    save_checkpoint, reduce_tensor, module_load_state_dict)
@@ -164,7 +164,7 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             t_loss_u = torch.mean(
                 -(soft_pseudo_label * torch.log_softmax(t_logits_us, dim=-1)).sum(dim=-1) * mask
             )
-            weight_u = args.lambda_u * min(1., step / args.uda_steps)
+            weight_u = args.lambda_u * min(1., (step+1) / args.uda_steps)
             t_loss_uda = t_loss_l + weight_u * t_loss_u
 
             s_images = torch.cat((images_l, images_us))
