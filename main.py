@@ -175,6 +175,9 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             s_loss = criterion(s_logits_us, hard_pseudo_label)
 
         s_scaler.scale(s_loss).backward()
+        if args.grad_clip > 0:
+            s_scaler.unscale_(s_optimizer)
+            nn.utils.clip_grad_norm_(student_model.parameters(), args.grad_clip)
         s_scaler.step(s_optimizer)
         s_scaler.update()
         s_scheduler.step()
@@ -193,6 +196,9 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             t_loss = t_loss_uda + t_loss_mpl
 
         t_scaler.scale(t_loss).backward()
+        if args.grad_clip > 0:
+            t_scaler.unscale_(t_optimizer)
+            nn.utils.clip_grad_norm_(teacher_model.parameters(), args.grad_clip)
         t_scaler.step(t_optimizer)
         t_scaler.update()
         t_scheduler.step()
@@ -261,14 +267,6 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
 
 
 def evaluate(args, test_loader, model, criterion):
-    def evaluation_step(args, model, criterion, images, targets):
-        images = images.to(args.device)
-        targets = targets.to(args.device)
-        with amp.autocast(enabled=args.amp):
-            output = model(images)
-            loss = criterion(output, targets)
-        return loss, output
-
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -281,7 +279,13 @@ def evaluate(args, test_loader, model, criterion):
         for step, (images, targets) in enumerate(test_iter):
             batch_size = targets.shape[0]
             data_time.update(time.time() - end)
-            loss, output = evaluation_step(args, model, criterion, images, targets)
+
+            images = images.to(args.device)
+            targets = targets.to(args.device)
+            with amp.autocast(enabled=args.amp):
+                output = model(images)
+                loss = criterion(output, targets)
+
             acc1, acc5 = accuracy(output, targets, (1, 5))
             losses.update(loss.item(), batch_size)
             top1.update(acc1[0], batch_size)
@@ -295,6 +299,7 @@ def evaluate(args, test_loader, model, criterion):
 
         test_iter.close()
         if args.local_rank in [-1, 0]:
+            args.writer.add_scalar("test/loss", losses.avg, args.num_eval)
             args.writer.add_scalar("test/acc@1", top1.avg, args.num_eval)
             args.writer.add_scalar("test/acc@5", top5.avg, args.num_eval)
 
