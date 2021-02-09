@@ -108,7 +108,8 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
     nn.init.uniform_(moving_dot_product, -limit, limit)
 
     for step in range(args.start_step, args.total_steps):
-        if step == 0 or step+1 % args.eval_step == 0:
+        if step % args.eval_step == 0:
+            logger.info("create pbar")
             pbar = tqdm(range(args.eval_step), disable=args.local_rank not in [-1, 0])
             batch_time = AverageMeter()
             data_time = AverageMeter()
@@ -234,8 +235,9 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             args.writer.add_scalar("loss/t_mpl", t_losses_mpl.avg)
             args.writer.add_scalar("loss/mask", mean_mask.avg)
 
-        if step != 0 and step % args.eval_step == 0:
+        if step+1 % args.eval_step == 0:
             pbar.close()
+            logger.info("close pbar")
             if args.local_rank in [-1, 0]:
                 test_model = avg_student_model if avg_student_model is not None else student_model
                 losses, top1, top5 = evaluate(args, test_loader, test_model, criterion)
@@ -275,10 +277,11 @@ def evaluate(args, test_loader, model, criterion):
     top1 = AverageMeter()
     top5 = AverageMeter()
     model.eval()
-    test_loader = tqdm(test_loader, disable=args.local_rank not in [-1, 0])
+    test_iter = tqdm(test_loader, disable=args.local_rank not in [-1, 0])
+    logger.info("create test_iter")
     with torch.no_grad():
         end = time.time()
-        for step, (images, targets) in enumerate(test_loader):
+        for step, (images, targets) in enumerate(test_iter):
             batch_size = targets.shape[0]
             data_time.update(time.time() - end)
             loss, output = evaluation_step(args, model, criterion, images, targets)
@@ -288,12 +291,13 @@ def evaluate(args, test_loader, model, criterion):
             top5.update(acc5[0], batch_size)
             batch_time.update(time.time() - end)
             end = time.time()
-            test_loader.set_description(
+            test_iter.set_description(
                 f"Test Iter: {step+1:3}/{len(test_loader):3}. Data: {data_time.avg:.2f}s. "
                 f"Batch: {batch_time.avg:.2f}s. Loss: {losses.avg:.4f}. "
                 f"top1: {top1.avg:.2f}. top5: {top5.avg:.2f}. ")
 
-        test_loader.close()
+        test_iter.close()
+        logger.info("close test_iter")
         if args.local_rank in [-1, 0]:
             args.writer.add_scalar("loss/val", losses.avg)
 
