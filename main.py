@@ -235,7 +235,7 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             args.writer.add_scalar("loss/t_mpl", t_losses_mpl.avg)
             args.writer.add_scalar("loss/mask", mean_mask.avg)
 
-        if step+1 % args.eval_step == 0:
+        if (step+1) % args.eval_step == 0:
             pbar.close()
             logger.info("close pbar")
             if args.local_rank in [-1, 0]:
