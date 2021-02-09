@@ -56,7 +56,7 @@ parser.add_argument('--mu', default=7, type=int, help='coefficient of unlabeled 
 parser.add_argument('--threshold', default=0.95, type=float, help='pseudo label threshold')
 parser.add_argument('--temperature', default=1, type=float, help='pseudo label temperature')
 parser.add_argument('--lambda-u', default=1, type=float, help='coefficient of unlabeled loss')
-parser.add_argument('--uda-step', default=1, type=float, help='warmup steps of lambda-u')
+parser.add_argument('--uda-steps', default=1, type=float, help='warmup steps of lambda-u')
 parser.add_argument("--randaug", nargs="+", type=int, help="use it like this. --randaug 2 10")
 parser.add_argument("--amp", action="store_true", help="use 16-bit (mixed) precision")
 parser.add_argument('--world-size', default=-1, type=int,
@@ -164,7 +164,7 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             t_loss_u = torch.mean(
                 -(soft_pseudo_label * torch.log_softmax(t_logits_us, dim=-1)).sum(dim=-1) * mask
             )
-            weight_u = args.lambda_u * min(1., step / args.uda_step)
+            weight_u = args.lambda_u * min(1., step / args.uda_steps)
             t_loss_uda = t_loss_l + weight_u * t_loss_u
 
             s_images = torch.cat((images_l, images_us))
