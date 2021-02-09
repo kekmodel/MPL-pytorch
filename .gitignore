@@ -1,3 +1,20 @@
+.vscode
+*.npz
+*.jpg
+*.JPG
+*.jpeg
+*.JPEG
+*.png
+*.PNG
+*.webp
+*.WEBP
+*.gif
+*.GIF
+*.zip
+*.tar
+checkpoint/
+data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
