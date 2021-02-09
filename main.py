@@ -321,7 +321,7 @@ def main():
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO if args.local_rank in [-1, 0] else logging.WARN)
 
-   logger.info(
+    logger.info(
         f"Process rank: {args.local_rank}, "
         f"device: {args.device}, "
         f"distributed training: {bool(args.local_rank != -1)}, "
