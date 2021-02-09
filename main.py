@@ -108,7 +108,7 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
     nn.init.uniform_(moving_dot_product, -limit, limit)
 
     for step in range(args.start_step, args.total_steps):
-        if step % args.eval_step == 0:
+        if step == 0 or step+1 % args.eval_step == 0:
             pbar = tqdm(range(args.eval_step), disable=args.local_rank not in [-1, 0])
             batch_time = AverageMeter()
             data_time = AverageMeter()
