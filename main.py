@@ -365,7 +365,7 @@ def main():
     teacher_model = build_wideresnet(args, depth=28, widen_factor=2)
     student_model = build_wideresnet(args, depth=28, widen_factor=2)
 
-   if args.local_rank == 0:
+    if args.local_rank == 0:
         torch.distributed.barrier()
 
     teacher_model.to(args.device)
@@ -380,7 +380,7 @@ def main():
                             momentum=args.momentum,
                             weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
-   s_optimizer = optim.SGD(student_model.parameters(),
+    s_optimizer = optim.SGD(student_model.parameters(),
                             lr=args.lr,
                             momentum=args.momentum,
                             weight_decay=args.weight_decay,
