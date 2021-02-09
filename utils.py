@@ -43,9 +43,10 @@ def save_checkpoint(args, state, is_best):
 
 
 def accuracy(output, target, topk=(1,)):
-    """Computes the precision@k for the specified values of k"""
+    output = output.to(torch.device('cpu'))
+    target = target.to(torch.device('cpu'))
     maxk = max(topk)
-    batch_size = target.size(0)
+    batch_size = target.shape[0]
 
     _, pred = output.topk(maxk, 1, True, True)
     pred = pred.t()
