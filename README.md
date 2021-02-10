@@ -9,7 +9,7 @@ The official Tensorflow implementation is [here](https://github.com/google-resea
 |:---:|:---:|:---:|:---:|
 | Paper (w/ finetune) | 96.11 ± 0.07 | 98.01 ± 0.07 | 73.89 |
 | This code (w/o finetune) | WIP | - | - |
-| Acc. curve | [link](https://tensorboard.dev/experiment/sRh7ke1jRRWrOFBpC4rhWQ/) | - | - |
+| Acc. curve | [link](https://tensorboard.dev/experiment/lRrkM9UmT06ukrZhW1Eocw/) | - | - |
 
 
 ## Usage
