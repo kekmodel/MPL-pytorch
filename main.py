@@ -389,7 +389,7 @@ def main():
 
     criterion = create_loss_fn(args)
 
-    no_decay = ['bn']
+    no_decay = ['bn', 'bias']
     teacher_parameters = [
         {'params': [p for n, p in teacher_model.named_parameters() if not any(
             nd in n for nd in no_decay)], 'weight_decay': args.weight_decay},
