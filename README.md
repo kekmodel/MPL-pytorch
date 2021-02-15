@@ -8,7 +8,8 @@ The official Tensorflow implementation is [here](https://github.com/google-resea
 |  | CIFAR-10-4K | SVHN-1K | ImageNet-10% |
 |:---:|:---:|:---:|:---:|
 | Paper (w/ finetune) | 96.11 ± 0.07 | 98.01 ± 0.07 | 73.89 |
-| This code (w/o finetune) | WIP | - | - |
+| This code (w/o finetune) | 94.46 | - | - |
+| This code (w/ finetune) | WIP | - | - |
 | Acc. curve | [link](https://tensorboard.dev/experiment/sRh7ke1jRRWrOFBpC4rhWQ/) | - | - |
 
 
