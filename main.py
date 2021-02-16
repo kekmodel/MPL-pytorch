@@ -336,7 +336,6 @@ def finetune(args, labeled_dataset, test_loader, model, criterion):
     logger.info("***** Running Finetuning *****")
     logger.info(f"   Finetuning steps = {len(labeled_loader)*args.finetune_epochs}")
 
-    labeled_iter = tqdm(labeled_loader, disable=args.local_rank not in [-1, 0])
     for epoch in range(args.finetune_epochs):
         if args.world_size > 1:
             labeled_loader.sampler.set_epoch(epoch+624)
@@ -346,6 +345,7 @@ def finetune(args, labeled_dataset, test_loader, model, criterion):
         losses = AverageMeter()
         model.train()
         end = time.time()
+        labeled_iter = tqdm(labeled_loader, disable=args.local_rank not in [-1, 0])
         for step, (images, targets) in enumerate(labeled_iter):
             data_time.update(time.time() - end)
             batch_size = targets.shape[0]
