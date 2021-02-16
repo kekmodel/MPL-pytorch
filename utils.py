@@ -34,9 +34,20 @@ def module_load_state_dict(model, state_dict):
     model.load_state_dict(new_state_dict)
 
 
-def save_checkpoint(args, state, is_best):
+def model_load_state_dict(model, state_dict):
+    try:
+        model.load_state_dict(state_dict)
+    except:
+        module_load_state_dict(model, state_dict)
+
+
+def save_checkpoint(args, state, is_best, finetune=False):
     os.makedirs(args.save_path, exist_ok=True)
-    filename = f'{args.save_path}/{args.name}_last.pth.tar'
+    if finetune:
+        name = f'{args.name}_finetune'
+    else:
+        name = args.name
+    filename = f'{args.save_path}/{name}_last.pth.tar'
     torch.save(state, filename, _use_new_zipfile_serialization=False)
     if is_best:
         shutil.copyfile(filename, f'{args.save_path}/{args.name}_best.pth.tar')

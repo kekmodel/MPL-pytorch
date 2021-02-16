@@ -20,7 +20,7 @@ from tqdm import tqdm
 from data import DATASET_GETTERS
 from models import build_wideresnet, ModelEMA
 from utils import (AverageMeter, accuracy, create_loss_fn,
-                   save_checkpoint, reduce_tensor, module_load_state_dict)
+                   save_checkpoint, reduce_tensor, model_load_state_dict)
 
 logger = logging.getLogger(__name__)
 
@@ -41,15 +41,21 @@ parser.add_argument('--num-classes', default=10, type=int, help='number of class
 parser.add_argument('--dense-dropout', default=0, type=float, help='dropout on last dense layer')
 parser.add_argument('--resize', default=32, type=int, help='resize image')
 parser.add_argument('--batch-size', default=64, type=int, help='train batch size')
-parser.add_argument('--lr', default=0.01, type=float, help='learning late')
+parser.add_argument('--lr', default=0.01, type=float, help='train learning late')
 parser.add_argument('--momentum', default=0.9, type=float, help='SGD Momentum')
 parser.add_argument('--nesterov', action='store_true', help='use nesterov')
-parser.add_argument('--weight-decay', default=0, type=float)
+parser.add_argument('--weight-decay', default=0, type=float, help='train weight decay')
 parser.add_argument('--ema', default=0, type=float, help='EMA decay rate')
 parser.add_argument('--warmup-steps', default=0, type=int, help='warmup steps')
 parser.add_argument('--grad-clip', default=0., type=float, help='gradient norm clipping')
 parser.add_argument('--resume', default='', type=str, help='path to checkpoint')
-parser.add_argument('--evaluate', action='store_true', help='evaluate model on validation set')
+parser.add_argument('--evaluate', action='store_true', help='only evaluate model on validation set')
+parser.add_argument('--finetune', action='store_true',
+                    help='only finetune model on labeled dataset')
+parser.add_argument('--finetune-epochs', default=125, type=int, help='finetune epochs')
+parser.add_argument('--finetune-batch-size', default=512, type=int, help='finetune batch size')
+parser.add_argument('--finetune-lr', default=1e-5, type=float, help='finetune learning late')
+parser.add_argument('--finetune-weight-decay', default=0, type=float, help='finetune weight decay')
 parser.add_argument('--seed', default=None, type=int, help='seed for initializing training')
 parser.add_argument('--label-smoothing', default=0, type=float, help='label smoothing alpha')
 parser.add_argument('--mu', default=7, type=int, help='coefficient of unlabeled batch size')
@@ -95,6 +101,10 @@ def get_lr(optimizer):
 def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
                teacher_model, student_model, avg_student_model, criterion,
                t_optimizer, s_optimizer, t_scheduler, s_scheduler, t_scaler, s_scaler):
+    logger.info("***** Running Training *****")
+    logger.info(f"   Task = {args.dataset}@{args.num_labeled}")
+    logger.info(f"   Total steps = {args.total_steps}")
+
     if args.world_size > 1:
         labeled_epoch = 0
         unlabeled_epoch = 0
@@ -245,7 +255,12 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
                 args.writer.add_scalar("train/6.mask", mean_mask.avg, args.num_eval)
 
                 test_model = avg_student_model if avg_student_model is not None else student_model
-                losses, top1, top5 = evaluate(args, test_loader, test_model, criterion)
+                test_loss, top1, top5 = evaluate(args, test_loader, test_model, criterion)
+
+                args.writer.add_scalar("test/loss", test_loss, args.num_eval)
+                args.writer.add_scalar("test/acc@1", top1, args.num_eval)
+                args.writer.add_scalar("test/acc@5", top5, args.num_eval)
+
                 is_best = top1 > args.best_top1
                 if is_best:
                     args.best_top1 = top1
@@ -287,10 +302,10 @@ def evaluate(args, test_loader, model, criterion):
             images = images.to(args.device)
             targets = targets.to(args.device)
             with amp.autocast(enabled=args.amp):
-                output = model(images)
-                loss = criterion(output, targets)
+                outputs = model(images)
+                loss = criterion(outputs, targets)
 
-            acc1, acc5 = accuracy(output, targets, (1, 5))
+            acc1, acc5 = accuracy(outputs, targets, (1, 5))
             losses.update(loss.item(), batch_size)
             top1.update(acc1[0], batch_size)
             top5.update(acc5[0], batch_size)
@@ -302,12 +317,80 @@ def evaluate(args, test_loader, model, criterion):
                 f"top1: {top1.avg:.2f}. top5: {top5.avg:.2f}. ")
 
         test_iter.close()
-        if args.local_rank in [-1, 0]:
-            args.writer.add_scalar("test/loss", losses.avg, args.num_eval)
-            args.writer.add_scalar("test/acc@1", top1.avg, args.num_eval)
-            args.writer.add_scalar("test/acc@5", top5.avg, args.num_eval)
-
         return losses.avg, top1.avg, top5.avg
+
+
+def finetune(args, labeled_dataset, test_loader, model, criterion):
+    train_sampler = RandomSampler if args.local_rank == -1 else DistributedSampler
+    labeled_loader = DataLoader(
+        labeled_dataset,
+        sampler=train_sampler(labeled_dataset),
+        batch_size=args.finetune_batch_size,
+        num_workers=args.workers,
+        pin_memory=True)
+    optimizer = optim.SGD(model.parameters(),
+                          lr=args.finetune_lr,
+                          weight_decay=args.finetune_weight_decay)
+    scaler = amp.GradScaler(enabled=args.amp)
+
+    logger.info("***** Running Finetuning *****")
+    logger.info(f"   Finetuning steps = {len(labeled_loader)*args.finetune_epochs}")
+
+    labeled_iter = tqdm(labeled_loader, disable=args.local_rank not in [-1, 0])
+    for epoch in range(args.finetune_epochs):
+        if args.world_size > 1:
+            labeled_loader.sampler.set_epoch(epoch+624)
+
+        batch_time = AverageMeter()
+        data_time = AverageMeter()
+        losses = AverageMeter()
+        model.train()
+        end = time.time()
+        for step, (images, targets) in enumerate(labeled_iter):
+            data_time.update(time.time() - end)
+            batch_size = targets.shape[0]
+            images = images.to(args.device)
+            targets = targets.to(args.device)
+            with amp.autocast(enabled=args.amp):
+                model.zero_grad()
+                outputs = model(images)
+                loss = criterion(outputs, targets)
+
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+
+            if args.world_size > 1:
+                loss = reduce_tensor(loss.detach(), args.world_size)
+            losses.update(loss.item(), batch_size)
+            batch_time.update(time.time() - end)
+            labeled_iter.set_description(
+                f"Finetune Epoch: {epoch+1:2}/{args.finetune_epochs:2}. Data: {data_time.avg:.2f}s. "
+                f"Batch: {batch_time.avg:.2f}s. Loss: {losses.avg:.4f}. ")
+        labeled_iter.close()
+        if args.local_rank in [-1, 0]:
+            args.writer.add_scalar("finetune/train_loss", losses.avg, epoch)
+            test_loss, top1, top5 = evaluate(args, test_loader, model, criterion)
+            args.writer.add_scalar("finetune/test_loss", test_loss, epoch)
+            args.writer.add_scalar("finetune/acc@1", top1, epoch)
+            args.writer.add_scalar("finetune/acc@5", top5, epoch)
+            is_best = top1 > args.best_top1
+            if is_best:
+                args.best_top1 = top1
+                args.best_top5 = top5
+
+            logger.info(f"top-1 acc: {top1:.2f}")
+            logger.info(f"Best top-1 acc: {args.best_top1:.2f}")
+
+            save_checkpoint(args, {
+                'step': step + 1,
+                'best_top1': args.best_top1,
+                'best_top5': args.best_top5,
+                'student_state_dict': model.state_dict(),
+                'avg_state_dict': None,
+                'student_optimizer': optimizer.state_dict(),
+            }, is_best, finetune=True)
+    return
 
 
 def main():
@@ -414,28 +497,26 @@ def main():
             logger.info(f"=> loading checkpoint '{args.resume}'")
             loc = f'cuda:{args.gpu}'
             checkpoint = torch.load(args.resume, map_location=loc)
-            args.start_step = checkpoint['step']
             args.best_top1 = checkpoint['best_top1']
             args.best_top5 = checkpoint['best_top5']
-            t_optimizer.load_state_dict(checkpoint['teacher_optimizer'])
-            s_optimizer.load_state_dict(checkpoint['student_optimizer'])
-            t_scheduler.load_state_dict(checkpoint['teacher_scheduler'])
-            s_scheduler.load_state_dict(checkpoint['student_scheduler'])
-            t_scaler.load_state_dict(checkpoint['teacher_scaler'])
-            s_scaler.load_state_dict(checkpoint['student_scaler'])
-            try:
-                teacher_model.load_state_dict(checkpoint['teacher_state_dict'])
-            except:
-                module_load_state_dict(teacher_model, checkpoint['teacher_state_dict'])
-            try:
-                student_model.load_state_dict(checkpoint['student_state_dict'])
-            except:
-                module_load_state_dict(student_model, checkpoint['student_state_dict'])
-            if avg_student_model is not None:
-                try:
-                    avg_student_model.load_state_dict(checkpoint['avg_state_dict'])
-                except:
-                    module_load_state_dict(avg_student_model, checkpoint['avg_state_dict'])
+            if not (args.evaluate or args.finetune):
+                args.start_step = checkpoint['step']
+                t_optimizer.load_state_dict(checkpoint['teacher_optimizer'])
+                s_optimizer.load_state_dict(checkpoint['student_optimizer'])
+                t_scheduler.load_state_dict(checkpoint['teacher_scheduler'])
+                s_scheduler.load_state_dict(checkpoint['student_scheduler'])
+                t_scaler.load_state_dict(checkpoint['teacher_scaler'])
+                s_scaler.load_state_dict(checkpoint['student_scaler'])
+                model_load_state_dict(teacher_model, checkpoint['teacher_state_dict'])
+                if avg_student_model is not None:
+                    model_load_state_dict(avg_student_model, checkpoint['avg_state_dict'])
+
+            else:
+                if checkpoint['avg_state_dict'] is not None:
+                    model_load_state_dict(student_model, checkpoint['avg_state_dict'])
+                else:
+                    model_load_state_dict(student_model, checkpoint['student_state_dict'])
+
             logger.info(f"=> loaded checkpoint '{args.resume}' (step {checkpoint['step']})")
         else:
             logger.info(f"=> no checkpoint found at '{args.resume}'")
@@ -448,15 +529,17 @@ def main():
             student_model, device_ids=[args.local_rank],
             output_device=args.local_rank, find_unused_parameters=True)
 
-    if args.evaluate:
-        if avg_student_model is not None:
-            student_model = avg_student_model
-        evaluate(args, test_loader, student_model, criterion)
+    if args.finetune:
+        del t_scaler, t_scheduler, t_optimizer, teacher_model, unlabeled_loader, labeled_loader
+        del s_scaler, s_scheduler, s_optimizer
+        finetune(args, labeled_dataset, test_loader, student_model, criterion)
         return
 
-    logger.info("***** Running Training *****")
-    logger.info(f"   Task = {args.dataset}@{args.num_labeled}")
-    logger.info(f"   Total steps = {args.total_steps}")
+    if args.evaluate:
+        del t_scaler, t_scheduler, t_optimizer, teacher_model, unlabeled_loader, labeled_loader
+        del s_scaler, s_scheduler, s_optimizer
+        evaluate(args, test_loader, student_model, criterion)
+        return
 
     teacher_model.zero_grad()
     student_model.zero_grad()
