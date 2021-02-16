@@ -325,6 +325,8 @@ def evaluate(args, test_loader, model, criterion):
 
 
 def finetune(args, train_loader, test_loader, model, criterion):
+    for p in model.parameters():
+        logger.info(p.requires_grad)
     train_sampler = RandomSampler if args.local_rank == -1 else DistributedSampler
     labeled_loader = DataLoader(
         train_loader.dataset,
