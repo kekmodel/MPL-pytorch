@@ -284,6 +284,9 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
                     'teacher_scaler': t_scaler.state_dict(),
                     'student_scaler': s_scaler.state_dict(),
                 }, is_best)
+    del t_scaler, t_scheduler, t_optimizer, teacher_model, unlabeled_loader
+    del s_scaler, s_scheduler, s_optimizer
+    finetune(args, labeled_loader, test_loader, student_model, criterion)
     return
 
 
@@ -321,11 +324,11 @@ def evaluate(args, test_loader, model, criterion):
         return losses.avg, top1.avg, top5.avg
 
 
-def finetune(args, labeled_dataset, test_loader, model, criterion):
+def finetune(args, train_loader, test_loader, model, criterion):
     train_sampler = RandomSampler if args.local_rank == -1 else DistributedSampler
     labeled_loader = DataLoader(
-        labeled_dataset,
-        sampler=train_sampler(labeled_dataset),
+        train_loader.dataset,
+        sampler=train_sampler(train_loader.dataset),
         batch_size=args.finetune_batch_size,
         num_workers=args.workers,
         pin_memory=True)
@@ -532,9 +535,9 @@ def main():
             output_device=args.local_rank, find_unused_parameters=True)
 
     if args.finetune:
-        del t_scaler, t_scheduler, t_optimizer, teacher_model, unlabeled_loader, labeled_loader
+        del t_scaler, t_scheduler, t_optimizer, teacher_model, unlabeled_loader
         del s_scaler, s_scheduler, s_optimizer
-        finetune(args, labeled_dataset, test_loader, student_model, criterion)
+        finetune(args, labeled_loader, test_loader, student_model, criterion)
         return
 
     if args.evaluate:
