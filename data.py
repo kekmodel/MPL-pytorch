@@ -109,7 +109,11 @@ def x_u_split(args, labels):
 
 class TransformMPL(object):
     def __init__(self, args, mean, std):
-        n, m = args.randaug
+        if args.randaug:
+            n, m = args.randaug
+        else:
+            n, m = 2, 10  # default
+
         self.ori = transforms.Compose([
             transforms.RandomHorizontalFlip(),
             transforms.RandomCrop(size=args.resize,
