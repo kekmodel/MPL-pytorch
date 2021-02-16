@@ -463,8 +463,8 @@ def main():
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()
 
-    teacher_model = build_wideresnet(args, depth=28, widen_factor=2)
-    student_model = build_wideresnet(args, depth=28, widen_factor=2)
+    teacher_model = build_wideresnet(args)
+    student_model = build_wideresnet(args)
 
     if args.local_rank == 0:
         torch.distributed.barrier()

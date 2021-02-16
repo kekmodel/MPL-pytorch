@@ -141,7 +141,12 @@ class WideResNet(nn.Module):
         return self.fc(self.drop(out))
 
 
-def build_wideresnet(args, depth, widen_factor):
+def build_wideresnet(args):
+    if args.dataset == "cifar10":
+        depth, widen_factor = 28, 2
+    elif args.dataset == 'cifar100':
+        depth, widen_factor = 28, 8
+
     model = WideResNet(num_classes=args.num_classes,
                        depth=depth,
                        widen_factor=widen_factor,
