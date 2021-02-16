@@ -426,8 +426,7 @@ def main():
     if args.local_rank in [-1, 0]:
         args.writer = SummaryWriter(f"results/{args.name}")
 
-
-   if args.seed is not None:
+    if args.seed is not None:
         set_seed(args)
 
     if args.local_rank not in [-1, 0]:
