@@ -56,6 +56,7 @@ parser.add_argument('--finetune-epochs', default=125, type=int, help='finetune e
 parser.add_argument('--finetune-batch-size', default=512, type=int, help='finetune batch size')
 parser.add_argument('--finetune-lr', default=1e-5, type=float, help='finetune learning late')
 parser.add_argument('--finetune-weight-decay', default=0, type=float, help='finetune weight decay')
+parser.add_argument('--finetune-momentum', default=0, type=float, help='finetune SGD Momentum')
 parser.add_argument('--seed', default=None, type=int, help='seed for initializing training')
 parser.add_argument('--label-smoothing', default=0, type=float, help='label smoothing alpha')
 parser.add_argument('--mu', default=7, type=int, help='coefficient of unlabeled batch size')
@@ -330,6 +331,7 @@ def finetune(args, labeled_dataset, test_loader, model, criterion):
         pin_memory=True)
     optimizer = optim.SGD(model.parameters(),
                           lr=args.finetune_lr,
+                          momentum=args.finetune_momentum,
                           weight_decay=args.finetune_weight_decay)
     scaler = amp.GradScaler(enabled=args.amp)
 
@@ -424,7 +426,9 @@ def main():
     if args.local_rank in [-1, 0]:
         args.writer = SummaryWriter(f"results/{args.name}")
 
-    if args.seed is not None:
+
+weight decay
+   if args.seed is not None:
         set_seed(args)
 
     if args.local_rank not in [-1, 0]:
