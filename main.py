@@ -427,7 +427,6 @@ def main():
         args.writer = SummaryWriter(f"results/{args.name}")
 
 
-weight decay
    if args.seed is not None:
         set_seed(args)
 
