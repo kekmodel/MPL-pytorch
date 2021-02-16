@@ -497,8 +497,8 @@ def main():
             logger.info(f"=> loading checkpoint '{args.resume}'")
             loc = f'cuda:{args.gpu}'
             checkpoint = torch.load(args.resume, map_location=loc)
-            args.best_top1 = checkpoint['best_top1']
-            args.best_top5 = checkpoint['best_top5']
+            args.best_top1 = checkpoint['best_top1'].to(torch.device('cpu'))
+            args.best_top5 = checkpoint['best_top5'].to(torch.device('cpu'))
             if not (args.evaluate or args.finetune):
                 args.start_step = checkpoint['step']
                 t_optimizer.load_state_dict(checkpoint['teacher_optimizer'])
