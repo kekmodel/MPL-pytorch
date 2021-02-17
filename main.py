@@ -480,10 +480,12 @@ def main():
     t_optimizer = optim.SGD(teacher_model.parameters(),
                             lr=args.lr,
                             momentum=args.momentum,
+                            weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
     s_optimizer = optim.SGD(student_model.parameters(),
                             lr=args.lr,
                             momentum=args.momentum,
+                            weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
 
     t_scheduler = get_cosine_schedule_with_warmup(t_optimizer,
