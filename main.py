@@ -284,8 +284,17 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
                     'teacher_scaler': t_scaler.state_dict(),
                     'student_scaler': s_scaler.state_dict(),
                 }, is_best)
+    # finetune
     del t_scaler, t_scheduler, t_optimizer, teacher_model, unlabeled_loader
     del s_scaler, s_scheduler, s_optimizer
+    ckpt_name = f'{args.save_path}/{args.name}_best.pth.tar'
+    loc = f'cuda:{args.gpu}'
+    checkpoint = torch.load(ckpt_name, map_location=loc)
+    logger.info(f"=> loading checkpoint '{ckpt_name}'")
+    if checkpoint['avg_state_dict'] is not None:
+        model_load_state_dict(student_model, checkpoint['avg_state_dict'])
+    else:
+        model_load_state_dict(student_model, checkpoint['student_state_dict'])
     finetune(args, labeled_loader, test_loader, student_model, criterion)
     return
 
