@@ -205,7 +205,7 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             moving_dot_product = moving_dot_product * 0.99 + dot_product * 0.01
             dot_product = dot_product - moving_dot_product
             _, hard_pseudo_label = torch.max(t_logits_us.detach(), dim=-1)
-            t_loss_mpl = dot_product * F.cross_entropy(t_logits_us.detach(), hard_pseudo_label)
+            t_loss_mpl = dot_product * F.cross_entropy(t_logits_us, hard_pseudo_label)
             t_loss = t_loss_uda + t_loss_mpl
 
         t_scaler.scale(t_loss).backward()
