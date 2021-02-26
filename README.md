@@ -13,7 +13,7 @@ The official Tensorflow implementation is [here](https://github.com/google-resea
 | Acc. curve | [link](https://tensorboard.dev/experiment/sRh7ke1jRRWrOFBpC4rhWQ/) | - | - |
 
 * I have experienced some difficulties while reproducing paper's result. 
-* Please let me know where to modify my code!
+* Please let me know where to modify my code! ([issue](https://github.com/kekmodel/MPL-pytorch/issues/2))
 
 ## Usage
 
