@@ -12,7 +12,8 @@ The official Tensorflow implementation is [here](https://github.com/google-resea
 | This code (w/ finetune) | WIP | - | - |
 | Acc. curve | [link](https://tensorboard.dev/experiment/sRh7ke1jRRWrOFBpC4rhWQ/) | - | - |
 
-\* I have experienced some difficulties while reproducing paper's result. Please let me know where to modify my code!
+* I have experienced some difficulties while reproducing paper's result. Please let me know where to modify my code!
+
 ## Usage
 
 Train the model by 4000 labeled data of CIFAR-10 dataset:
