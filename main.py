@@ -47,6 +47,7 @@ parser.add_argument('--nesterov', action='store_true', help='use nesterov')
 parser.add_argument('--weight-decay', default=0, type=float, help='train weight decay')
 parser.add_argument('--ema', default=0, type=float, help='EMA decay rate')
 parser.add_argument('--warmup-steps', default=0, type=int, help='warmup steps')
+parser.add_argument('--student-wait-steps', default=0, type=int, help='warmup steps')
 parser.add_argument('--grad-clip', default=0., type=float, help='gradient norm clipping')
 parser.add_argument('--resume', default='', type=str, help='path to checkpoint')
 parser.add_argument('--evaluate', action='store_true', help='only evaluate model on validation set')
@@ -82,14 +83,18 @@ def set_seed(args):
 def get_cosine_schedule_with_warmup(optimizer,
                                     num_warmup_steps,
                                     num_training_steps,
+                                    num_wait_steps=0,
                                     num_cycles=0.5,
                                     last_epoch=-1):
     def lr_lambda(current_step):
-        if current_step < num_warmup_steps:
-            return float(current_step) / float(max(1, num_warmup_steps))
+        if current_step < num_wait_steps:
+            return 0.0
 
-        progress = float(current_step - num_warmup_steps) / \
-            float(max(1, num_training_steps - num_warmup_steps))
+        if current_step < num_warmup_steps + num_wait_steps:
+            return float(current_step) / float(max(1, num_warmup_steps+ num_wait_steps))
+
+        progress = float(current_step - num_warmup_steps - num_wait_steps) / \
+            float(max(1, num_training_steps - num_warmup_steps - num_wait_steps))
         return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)))
 
     return LambdaLR(optimizer, lr_lambda, last_epoch)
@@ -501,8 +506,9 @@ def main():
                                                   args.warmup_steps,
                                                   args.total_steps)
     s_scheduler = get_cosine_schedule_with_warmup(s_optimizer,
-                                                  0,
-                                                  args.total_steps)
+                                                  args.warmup_steps,
+                                                  args.total_steps,
+                                                  args.student_wait_steps)
 
     t_scaler = amp.GradScaler(enabled=args.amp)
     s_scaler = amp.GradScaler(enabled=args.amp)
