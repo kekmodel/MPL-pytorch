@@ -20,12 +20,12 @@ The official Tensorflow implementation is [here](https://github.com/google-resea
 Train the model by 4000 labeled data of CIFAR-10 dataset:
 
 ```
-python main.py --seed 5 --name cifar10@4000.5 --dataset cifar10 --num-classes 10 --num-labeled 4000 --expand-labels --total-steps 300000 --eval-step 1000 --randaug 2 16 --batch-size 128 --lr 0.05 --weight-decay 5e-4  --ema 0.995 --nesterov --mu 7 --label-smoothing 0.15 --temperature 0.7 --threshold 0.6 --lambda-u 8 --warmup-steps 5000 --uda-steps 5000 --amp
+python main.py --seed 5 --name cifar10-4K.5 --dataset cifar10 --num-classes 10 --num-labeled 4000 --expand-labels --total-steps 300000 --eval-step 1000 --randaug 2 16 --batch-size 128 --lr 0.05 --weight-decay 5e-4 --dense-dropout 0.2 --ema 0.995 --nesterov --mu 7 --label-smoothing 0.15 --temperature 0.7 --threshold 0.6 --lambda-u 8 --warmup-steps 5000 --uda-steps 5000 --student-wait-steps 3000 --amp 
 ```
 
 Train the model by 10000 labeled data of CIFAR-100 dataset by using DistributedDataParallel:
 ```
-python -m torch.distributed.launch --nproc_per_node 4 main.py --seed 5 --name cifar100@10000.5 --dataset cifar100 --num-classes 100 --num-labeled 10000 --expand-labels --total-steps 300000 --eval-step 1000 --randaug 2 16 --batch-size 32 --lr 0.05 --weight-decay 5e-4  --ema 0.995 --nesterov --mu 7 --label-smoothing 0.15 --temperature 0.7 --threshold 0.6 --lambda-u 8 --warmup-steps 5000 --uda-steps 5000 --amp
+python -m torch.distributed.launch --nproc_per_node 4 main.py --seed 5 --name cifar100-10K.5 --dataset cifar100 --num-classes 100 --num-labeled 10000 --expand-labels --total-steps 300000 --eval-step 1000 --randaug 2 16 --batch-size 128 --lr 0.05 --weight-decay 5e-4 --dense-dropout 0.2 --ema 0.995 --nesterov --mu 7 --label-smoothing 0.15 --temperature 0.7 --threshold 0.6 --lambda-u 8 --warmup-steps 5000 --uda-steps 5000 --student-wait-steps 3000 --amp 
 ```
 
 Monitoring training progress
