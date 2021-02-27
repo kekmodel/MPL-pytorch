@@ -46,12 +46,12 @@ class ModelEMA(nn.Module):
 class BasicBlock(nn.Module):
     def __init__(self, in_planes, out_planes, stride, dropout=0.0, activate_before_residual=False):
         super(BasicBlock, self).__init__()
-        self.bn1 = nn.BatchNorm2d(in_planes, momentum=0.001)
-        self.relu1 = nn.LeakyReLU(negative_slope=0.1, inplace=True)
+        self.bn1 = nn.BatchNorm2d(in_planes, momentum=0.01, eps=1e-3)
+        self.relu1 = nn.ReLU(inplace=True)
         self.conv1 = nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                                padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_planes, momentum=0.001)
-        self.relu2 = nn.LeakyReLU(negative_slope=0.1, inplace=True)
+        self.bn2 = nn.BatchNorm2d(out_planes, momentum=0.01, eps=1e-3)
+        self.relu2 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(out_planes, out_planes, kernel_size=3, stride=1,
                                padding=1, bias=False)
         self.dropout = dropout
@@ -112,8 +112,8 @@ class WideResNet(nn.Module):
         self.block3 = NetworkBlock(
             n, channels[2], channels[3], block, 2, dropout)
         # global average pooling and classifier
-        self.bn1 = nn.BatchNorm2d(channels[3], momentum=0.001)
-        self.relu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
+        self.bn1 = nn.BatchNorm2d(channels[3], momentum=0.01, eps=1e-3)
+        self.relu = nn.ReLU(inplace=True)
         self.drop = nn.Dropout(dense_dropout)
         self.fc = nn.Linear(channels[3], num_classes)
         self.channels = channels[3]
@@ -122,7 +122,7 @@ class WideResNet(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight,
                                         mode='fan_out',
-                                        nonlinearity='leaky_relu')
+                                        nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1.0)
                 nn.init.constant_(m.bias, 0.0)
