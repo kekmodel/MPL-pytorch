@@ -493,29 +493,29 @@ def main():
 
     criterion = create_loss_fn(args)
 
-    # no_decay = ['bn']
-    # teacher_parameters = [
-    #     {'params': [p for n, p in teacher_model.named_parameters() if not any(
-    #         nd in n for nd in no_decay)], 'weight_decay': args.weight_decay},
-    #     {'params': [p for n, p in teacher_model.named_parameters() if any(
-    #         nd in n for nd in no_decay)], 'weight_decay': 0.0}
-    # ]
-    # student_parameters = [
-    #     {'params': [p for n, p in student_model.named_parameters() if not any(
-    #         nd in n for nd in no_decay)], 'weight_decay': args.weight_decay},
-    #     {'params': [p for n, p in student_model.named_parameters() if any(
-    #         nd in n for nd in no_decay)], 'weight_decay': 0.0}
-    # ]
+    no_decay = ['bn']
+    teacher_parameters = [
+        {'params': [p for n, p in teacher_model.named_parameters() if not any(
+            nd in n for nd in no_decay)], 'weight_decay': args.weight_decay},
+        {'params': [p for n, p in teacher_model.named_parameters() if any(
+            nd in n for nd in no_decay)], 'weight_decay': 0.0}
+    ]
+    student_parameters = [
+        {'params': [p for n, p in student_model.named_parameters() if not any(
+            nd in n for nd in no_decay)], 'weight_decay': args.weight_decay},
+        {'params': [p for n, p in student_model.named_parameters() if any(
+            nd in n for nd in no_decay)], 'weight_decay': 0.0}
+    ]
 
     t_optimizer = optim.SGD(teacher_model.parameters(),
                             lr=args.lr,
                             momentum=args.momentum,
-                            weight_decay=args.weight_decay,
+                            # weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
     s_optimizer = optim.SGD(student_model.parameters(),
                             lr=args.lr,
                             momentum=args.momentum,
-                            weight_decay=args.weight_decay,
+                            # weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
 
     t_scheduler = get_cosine_schedule_with_warmup(t_optimizer,
