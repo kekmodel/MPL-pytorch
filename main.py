@@ -507,12 +507,12 @@ def main():
             nd in n for nd in no_decay)], 'weight_decay': 0.0}
     ]
 
-    t_optimizer = optim.SGD(teacher_model.parameters(),
+    t_optimizer = optim.SGD(teacher_parameters,
                             lr=args.lr,
                             momentum=args.momentum,
                             # weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
-    s_optimizer = optim.SGD(student_model.parameters(),
+    s_optimizer = optim.SGD(student_parameters,
                             lr=args.lr,
                             momentum=args.momentum,
                             # weight_decay=args.weight_decay,
