@@ -206,9 +206,9 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             with torch.no_grad():
                 s_logits_l = student_model(images_l)
             s_loss_l_new = F.cross_entropy(s_logits_l.detach(), targets)
-            # dot_product = s_loss_l_new - s_loss_l_old
+            dot_product = s_loss_l_new - s_loss_l_old
             # test
-            dot_product = s_loss_l_old - s_loss_l_new
+            # dot_product = s_loss_l_old - s_loss_l_new
             moving_dot_product = moving_dot_product * 0.99 + dot_product * 0.01
             dot_product = dot_product - moving_dot_product
             _, hard_pseudo_label = torch.max(t_logits_us.detach(), dim=-1)
