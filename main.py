@@ -183,11 +183,16 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             weight_u = args.lambda_u * min(1., (step+1) / args.uda_steps)
             t_loss_uda = t_loss_l + weight_u * t_loss_u
 
-            s_images = torch.cat((images_l, images_us))
-            s_logits = student_model(s_images)
-            s_logits_l = s_logits[:batch_size]
-            s_logits_us = s_logits[batch_size:]
-            del s_logits
+            # s_images = torch.cat((images_l, images_us))
+            # s_logits = student_model(s_images)
+            # s_logits_l = s_logits[:batch_size]
+            # s_logits_us = s_logits[batch_size:]
+            s_logits_us = student_model(images_us)
+            student_model.eval()
+            with torch.no_grad():
+                s_logits_l = student_model(images_l)
+            student_model.train()
+            # del s_logits
 
             s_loss_l_old = F.cross_entropy(s_logits_l.detach(), targets)
             s_loss = criterion(s_logits_us, hard_pseudo_label)
@@ -203,8 +208,10 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             avg_student_model.update_parameters(student_model)
 
         with amp.autocast(enabled=args.amp):
+            student_model.eval()
             with torch.no_grad():
                 s_logits_l = student_model(images_l)
+            student_model.train()
             s_loss_l_new = F.cross_entropy(s_logits_l.detach(), targets)
             dot_product = s_loss_l_new - s_loss_l_old
             # test
@@ -494,7 +501,7 @@ def main():
                                depth=depth,
                                widen_factor=widen_factor,
                                dropout=0,
-                               dense_dropout=0)
+                               dense_dropout=args.dense_dropout)
 
     if args.local_rank == 0:
         torch.distributed.barrier()
