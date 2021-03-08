@@ -18,7 +18,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from data import DATASET_GETTERS
-from models import build_wideresnet, ModelEMA
+from models import WideResNet, ModelEMA
 from utils import (AverageMeter, accuracy, create_loss_fn,
                    save_checkpoint, reduce_tensor, model_load_state_dict)
 
@@ -476,11 +476,25 @@ def main():
                              batch_size=args.batch_size,
                              num_workers=args.workers)
 
+    if args.dataset == "cifar10":
+        depth, widen_factor = 28, 2
+    elif args.dataset == 'cifar100':
+        depth, widen_factor = 28, 8
+
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()
 
-    teacher_model = build_wideresnet(args)
-    student_model = build_wideresnet(args)
+    # test dropout
+    teacher_model = WideResNet(num_classes=args.num_classes,
+                               depth=depth,
+                               widen_factor=widen_factor,
+                               dropout=0,
+                               dense_dropout=args.dense_dropout)
+    student_model = WideResNet(num_classes=args.num_classes,
+                               depth=depth,
+                               widen_factor=widen_factor,
+                               dropout=0,
+                               dense_dropout=0)
 
     if args.local_rank == 0:
         torch.distributed.barrier()
