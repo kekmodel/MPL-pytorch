@@ -33,8 +33,8 @@ def get_cifar10(args):
     ])
     base_dataset = datasets.CIFAR10(args.data_path, train=True, download=True)
 
-    train_labeled_idxs, train_unlabeled_idxs = x_u_split(args, base_dataset.targets)
-    # train_labeled_idxs, train_unlabeled_idxs = x_u_split_test(args, base_dataset.targets)
+    # train_labeled_idxs, train_unlabeled_idxs = x_u_split(args, base_dataset.targets)
+    train_labeled_idxs, train_unlabeled_idxs = x_u_split_test(args, base_dataset.targets)
 
     train_labeled_dataset = CIFAR10SSL(
         args.data_path, train_labeled_idxs, train=True,
