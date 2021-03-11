@@ -107,6 +107,25 @@ def x_u_split(args, labels):
     return labeled_idx, unlabeled_idx
 
 
+def x_u_split_test(args, labels):
+    label_per_class = args.num_labeled // args.num_classes
+    labels = np.array(labels)
+    labeled_idx = []
+    unlabeled_idx = []
+    for i in range(args.num_classes):
+        idx = np.where(labels == i)[0]
+        np.random.shuffle(idx)
+        labeled_idx.extend(idx[:label_per_class])
+        unlabeled_idx.extend(idx[label_per_class:])
+    labeled_idx = np.array(labeled_idx)
+    unlabeled_idx = np.array(unlabeled_idx)
+    assert len(labeled_idx) == args.num_labeled
+
+    np.random.shuffle(labeled_idx)
+    np.random.shuffle(unlabeled_idx)
+    return labeled_idx, unlabeled_idx
+
+
 class TransformMPL(object):
     def __init__(self, args, mean, std):
         if args.randaug:
