@@ -18,7 +18,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from data import DATASET_GETTERS
-from models import WideResNet, ModelEMA
+from models import build_wideresnet, ModelEMA
 from utils import (AverageMeter, accuracy, create_loss_fn,
                    save_checkpoint, reduce_tensor, model_load_state_dict)
 
@@ -183,16 +183,11 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             weight_u = args.lambda_u * min(1., (step+1) / args.uda_steps)
             t_loss_uda = t_loss_l + weight_u * t_loss_u
 
-            # s_images = torch.cat((images_l, images_us))
-            # s_logits = student_model(s_images)
-            # s_logits_l = s_logits[:batch_size]
-            # s_logits_us = s_logits[batch_size:]
-            s_logits_us = student_model(images_us)
-            student_model.eval()
-            with torch.no_grad():
-                s_logits_l = student_model(images_l)
-            student_model.train()
-            # del s_logits
+            s_images = torch.cat((images_l, images_us))
+            s_logits = student_model(s_images)
+            s_logits_l = s_logits[:batch_size]
+            s_logits_us = s_logits[batch_size:]
+            del s_logits
 
             s_loss_l_old = F.cross_entropy(s_logits_l.detach(), targets)
             s_loss = criterion(s_logits_us, hard_pseudo_label)
@@ -208,10 +203,8 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             avg_student_model.update_parameters(student_model)
 
         with amp.autocast(enabled=args.amp):
-            student_model.eval()
             with torch.no_grad():
                 s_logits_l = student_model(images_l)
-            student_model.train()
             s_loss_l_new = F.cross_entropy(s_logits_l.detach(), targets)
             dot_product = s_loss_l_new - s_loss_l_old
             # test
@@ -483,25 +476,11 @@ def main():
                              batch_size=args.batch_size,
                              num_workers=args.workers)
 
-    if args.dataset == "cifar10":
-        depth, widen_factor = 28, 2
-    elif args.dataset == 'cifar100':
-        depth, widen_factor = 28, 8
-
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()
 
-    # test dropout
-    teacher_model = WideResNet(num_classes=args.num_classes,
-                               depth=depth,
-                               widen_factor=widen_factor,
-                               dropout=0,
-                               dense_dropout=args.dense_dropout)
-    student_model = WideResNet(num_classes=args.num_classes,
-                               depth=depth,
-                               widen_factor=widen_factor,
-                               dropout=0,
-                               dense_dropout=args.dense_dropout)
+    teacher_model = build_wideresnet(args)
+    student_model = build_wideresnet(args)
 
     if args.local_rank == 0:
         torch.distributed.barrier()
