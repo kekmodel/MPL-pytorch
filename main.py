@@ -18,7 +18,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from data import DATASET_GETTERS
-from models import build_wideresnet, ModelEMA
+from models import WideResNet, ModelEMA
 from utils import (AverageMeter, accuracy, create_loss_fn,
                    save_checkpoint, reduce_tensor, model_load_state_dict)
 
@@ -38,10 +38,12 @@ parser.add_argument('--start-step', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
 parser.add_argument('--workers', default=4, type=int, help='number of workers')
 parser.add_argument('--num-classes', default=10, type=int, help='number of classes')
-parser.add_argument('--dense-dropout', default=0, type=float, help='dropout on last dense layer')
 parser.add_argument('--resize', default=32, type=int, help='resize image')
 parser.add_argument('--batch-size', default=64, type=int, help='train batch size')
-parser.add_argument('--lr', default=0.01, type=float, help='train learning late')
+parser.add_argument('--teacher-dropout', default=0, type=float, help='dropout on last dense layer')
+parser.add_argument('--student-dropout', default=0, type=float, help='dropout on last dense layer')
+parser.add_argument('--teacher_lr', default=0.01, type=float, help='train learning late')
+parser.add_argument('--student_lr', default=0.01, type=float, help='train learning late')
 parser.add_argument('--momentum', default=0.9, type=float, help='SGD Momentum')
 parser.add_argument('--nesterov', action='store_true', help='use nesterov')
 parser.add_argument('--weight-decay', default=0, type=float, help='train weight decay')
@@ -476,14 +478,30 @@ def main():
                              batch_size=args.batch_size,
                              num_workers=args.workers)
 
+    if args.dataset == "cifar10":
+        depth, widen_factor = 28, 2
+    elif args.dataset == 'cifar100':
+        depth, widen_factor = 28, 8
+
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()
 
-    teacher_model = build_wideresnet(args)
-    student_model = build_wideresnet(args)
+    teacher_model = WideResNet(num_classes=args.num_classes,
+                               depth=depth,
+                               widen_factor=widen_factor,
+                               dropout=0,
+                               dense_dropout=args.teacher_dropout)
+    student_model = WideResNet(num_classes=args.num_classes,
+                               depth=depth,
+                               widen_factor=widen_factor,
+                               dropout=0,
+                               dense_dropout=args.student_dropout)
 
     if args.local_rank == 0:
         torch.distributed.barrier()
+
+    logger.info(f"Model: WideResNet {depth}x{widen_factor}")
+    logger.info(f"Params: {sum(p.numel() for p in teacher_model.parameters())/1e6:.2f}M")
 
     teacher_model.to(args.device)
     student_model.to(args.device)
@@ -508,12 +526,12 @@ def main():
     ]
 
     t_optimizer = optim.SGD(teacher_parameters,
-                            lr=args.lr,
+                            lr=args.teacher_lr,
                             momentum=args.momentum,
                             # weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
     s_optimizer = optim.SGD(student_parameters,
-                            lr=args.lr,
+                            lr=args.student_lr,
                             momentum=args.momentum,
                             # weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
