@@ -122,6 +122,11 @@ def x_u_split_test(args, labels):
     unlabeled_idx = np.array(unlabeled_idx)
     assert len(labeled_idx) == args.num_labeled
 
+    if args.expand_labels or args.num_labeled < args.batch_size:
+        num_expand_x = math.ceil(
+            args.batch_size * args.eval_step / args.num_labeled)
+        labeled_idx = np.hstack([labeled_idx for _ in range(num_expand_x)])
+
     np.random.shuffle(labeled_idx)
     np.random.shuffle(unlabeled_idx)
     return labeled_idx, unlabeled_idx
