@@ -122,9 +122,9 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
     labeled_iter = iter(labeled_loader)
     unlabeled_iter = iter(unlabeled_loader)
 
-    moving_dot_product = torch.empty(1).to(args.device)
-    limit = 3.0**(0.5)  # 3 = 6 / (f_in + f_out)
-    nn.init.uniform_(moving_dot_product, -limit, limit)
+#     moving_dot_product = torch.empty(1).to(args.device)
+#     limit = 3.0**(0.5)  # 3 = 6 / (f_in + f_out)
+#     nn.init.uniform_(moving_dot_product, -limit, limit)
 
     for step in range(args.start_step, args.total_steps):
         if step % args.eval_step == 0:
@@ -208,11 +208,11 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             with torch.no_grad():
                 s_logits_l = student_model(images_l)
             s_loss_l_new = F.cross_entropy(s_logits_l.detach(), targets)
-            dot_product = s_loss_l_new - s_loss_l_old
+#             dot_product = s_loss_l_new - s_loss_l_old
             # test
-            # dot_product = s_loss_l_old - s_loss_l_new
-            moving_dot_product = moving_dot_product * 0.99 + dot_product * 0.01
-            dot_product = dot_product - moving_dot_product
+            dot_product = s_loss_l_old - s_loss_l_new
+#             moving_dot_product = moving_dot_product * 0.99 + dot_product * 0.01
+#             dot_product = dot_product - moving_dot_product
             _, hard_pseudo_label = torch.max(t_logits_us.detach(), dim=-1)
             t_loss_mpl = dot_product * F.cross_entropy(t_logits_us, hard_pseudo_label)
             t_loss = t_loss_uda + t_loss_mpl
