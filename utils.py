@@ -27,11 +27,18 @@ def create_loss_fn(args):
 
 
 def module_load_state_dict(model, state_dict):
-    new_state_dict = OrderedDict()
-    for k, v in state_dict.items():
-        name = k[7:]  # remove `module.`
-        new_state_dict[name] = v
-    model.load_state_dict(new_state_dict)
+    try:
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k[7:]  # remove `module.`
+            new_state_dict[name] = v
+        model.load_state_dict(new_state_dict)
+    except:
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = f'module.{k}'  # add `module.`
+            new_state_dict[name] = v
+        model.load_state_dict(new_state_dict)
 
 
 def model_load_state_dict(model, state_dict):
