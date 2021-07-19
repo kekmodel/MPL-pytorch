@@ -15,6 +15,7 @@ from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
+import wandb
 from tqdm import tqdm
 
 from data import DATASET_GETTERS
@@ -252,6 +253,7 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
         pbar.update()
         if args.local_rank in [-1, 0]:
             args.writer.add_scalar("lr", get_lr(s_optimizer), step)
+            wandb.log({"lr": get_lr(s_optimizer)})
 
         args.num_eval = step//args.eval_step
         if (step+1) % args.eval_step == 0:
@@ -263,6 +265,12 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
                 args.writer.add_scalar("train/4.t_unlabeled", t_losses_u.avg, args.num_eval)
                 args.writer.add_scalar("train/5.t_mpl", t_losses_mpl.avg, args.num_eval)
                 args.writer.add_scalar("train/6.mask", mean_mask.avg, args.num_eval)
+                wandb.log({"train/1.s_loss": s_losses.avg,
+                           "train/2.t_loss": t_losses.avg,
+                           "train/3.t_labeled": t_losses_l.avg,
+                           "train/4.t_unlabeled": t_losses_u.avg,
+                           "train/5.t_mpl": t_losses_mpl.avg,
+                           "train/6.mask": mean_mask.avg})
 
                 test_model = avg_student_model if avg_student_model is not None else student_model
                 test_loss, top1, top5 = evaluate(args, test_loader, test_model, criterion)
@@ -270,6 +278,9 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
                 args.writer.add_scalar("test/loss", test_loss, args.num_eval)
                 args.writer.add_scalar("test/acc@1", top1, args.num_eval)
                 args.writer.add_scalar("test/acc@5", top5, args.num_eval)
+                wandb.log({"test/loss": test_loss,
+                           "test/acc@1": top1,
+                           "test/acc@5": top5})
 
                 is_best = top1 > args.best_top1
                 if is_best:
@@ -446,6 +457,7 @@ def main():
 
     if args.local_rank in [-1, 0]:
         args.writer = SummaryWriter(f"results/{args.name}")
+        wandb.init(name=args.name, project='MPL', config=args)
 
     if args.seed is not None:
         set_seed(args)

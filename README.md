@@ -38,5 +38,6 @@ tensorboard --logdir results
 - torch 1.7+
 - torchvision 0.8+
 - tensorboard
+- wandb
 - numpy
 - tqdm
