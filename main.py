@@ -335,7 +335,7 @@ def evaluate(args, test_loader, model, criterion):
         end = time.time()
         for step, (images, targets) in enumerate(test_iter):
             data_time.update(time.time() - end)
-            batch_size = targets.shape[0]
+            batch_size = images.shape[0]
             images = images.to(args.device)
             targets = targets.to(args.device)
             with amp.autocast(enabled=args.amp):
@@ -386,7 +386,7 @@ def finetune(args, train_loader, test_loader, model, criterion):
         labeled_iter = tqdm(labeled_loader, disable=args.local_rank not in [-1, 0])
         for step, (images, targets) in enumerate(labeled_iter):
             data_time.update(time.time() - end)
-            batch_size = targets.shape[0]
+            batch_size = images.shape[0]
             images = images.to(args.device)
             targets = targets.to(args.device)
             with amp.autocast(enabled=args.amp):
