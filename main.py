@@ -408,6 +408,11 @@ def finetune(args, train_loader, test_loader, model, criterion):
             args.writer.add_scalar("finetune/test_loss", test_loss, epoch)
             args.writer.add_scalar("finetune/acc@1", top1, epoch)
             args.writer.add_scalar("finetune/acc@5", top5, epoch)
+            wandb.log({"finetune/train_loss": losses.avg,
+                       "finetune/test_loss": test_loss,
+                       "finetune/acc@1": top1,
+                       "finetune/acc@5": top5})
+
             is_best = top1 > args.best_top1
             if is_best:
                 args.best_top1 = top1
