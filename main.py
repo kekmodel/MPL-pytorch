@@ -304,6 +304,10 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
                     'teacher_scaler': t_scaler.state_dict(),
                     'student_scaler': s_scaler.state_dict(),
                 }, is_best)
+
+    if args.local_rank in [-1, 0]:
+        args.writer.add_scalar("result/test_acc@1", args.best_top1)
+        wandb.log({"result/test_acc@1": args.best_top1})
     # finetune
     del t_scaler, t_scheduler, t_optimizer, teacher_model, unlabeled_loader
     del s_scaler, s_scheduler, s_optimizer
@@ -429,6 +433,9 @@ def finetune(args, train_loader, test_loader, model, criterion):
                 'avg_state_dict': None,
                 'student_optimizer': optimizer.state_dict(),
             }, is_best, finetune=True)
+        if args.local_rank in [-1, 0]:
+            args.writer.add_scalar("result/finetune_acc@1", args.best_top1)
+            wandb.log({"result/fintune_acc@1": args.best_top1})
     return
 
 
