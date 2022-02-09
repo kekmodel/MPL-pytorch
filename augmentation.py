@@ -305,7 +305,7 @@ class RandAugmentCIFAR(object):
             prob = np.random.uniform(0.2, 0.8)
             if random.random() <= prob:
                 img = op(img, v=self.m, max_v=max_v, bias=bias)
-        img = CutoutConst(img, 32 // 4)
+        img = CutoutConst(img, v=self.m, max_v=32 // 4)
         return img
 
 
