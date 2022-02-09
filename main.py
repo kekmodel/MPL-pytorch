@@ -51,7 +51,7 @@ parser.add_argument('--weight-decay', default=0, type=float, help='train weight 
 parser.add_argument('--ema', default=0, type=float, help='EMA decay rate')
 parser.add_argument('--warmup-steps', default=0, type=int, help='warmup steps')
 parser.add_argument('--student-wait-steps', default=0, type=int, help='warmup steps')
-parser.add_argument('--grad-clip', default=0., type=float, help='gradient norm clipping')
+parser.add_argument('--grad-clip', default=1e9, type=float, help='gradient norm clipping')
 parser.add_argument('--resume', default='', type=str, help='path to checkpoint')
 parser.add_argument('--evaluate', action='store_true', help='only evaluate model on validation set')
 parser.add_argument('--finetune', action='store_true',
@@ -552,12 +552,10 @@ def main():
     t_optimizer = optim.SGD(teacher_parameters,
                             lr=args.teacher_lr,
                             momentum=args.momentum,
-                            weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
     s_optimizer = optim.SGD(student_parameters,
                             lr=args.student_lr,
                             momentum=args.momentum,
-                            weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
 
     t_scheduler = get_cosine_schedule_with_warmup(t_optimizer,
