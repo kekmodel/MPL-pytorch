@@ -376,7 +376,7 @@ def finetune(args, train_loader, test_loader, model, criterion):
 
     for epoch in range(args.finetune_epochs):
         if args.world_size > 1:
-            labeled_loader.sampler.set_epoch(epoch+624)
+            labeled_loader.sampler.set_epoch(epoch + 624)
 
         batch_time = AverageMeter()
         data_time = AverageMeter()
