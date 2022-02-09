@@ -6,14 +6,14 @@ from PIL import Image
 from torchvision import datasets
 from torchvision import transforms
 
-from augmentation import RandAugment
+from augmentation import RandAugmentCIFARCIFAR
 
 logger = logging.getLogger(__name__)
 
-cifar10_mean = (0.4914, 0.4822, 0.4465)
-cifar10_std = (0.2471, 0.2435, 0.2616)
-cifar100_mean = (0.5071, 0.4867, 0.4408)
-cifar100_std = (0.2675, 0.2565, 0.2761)
+cifar10_mean = (0.491400, 0.482158, 0.4465231)
+cifar10_std = (0.247032, 0.243485, 0.2615877)
+cifar100_mean = (0.507075, 0.486549, 0.440918)
+cifar100_std = (0.267334, 0.256438, 0.276151)
 normal_mean = (0.5, 0.5, 0.5)
 normal_std = (0.5, 0.5, 0.5)
 
@@ -22,8 +22,9 @@ def get_cifar10(args):
     transform_labeled = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.RandomCrop(size=args.resize,
-                              padding=int(args.resize*0.125),
-                              padding_mode='reflect'),
+                              padding=int(args.resize * 0.125),
+                              fill=128,
+                              padding_mode='constant'),
         transforms.ToTensor(),
         transforms.Normalize(mean=cifar10_mean, std=cifar10_std)
     ])
@@ -34,7 +35,6 @@ def get_cifar10(args):
     base_dataset = datasets.CIFAR10(args.data_path, train=True, download=True)
 
     train_labeled_idxs, train_unlabeled_idxs = x_u_split(args, base_dataset.targets)
-    # train_labeled_idxs, train_unlabeled_idxs = x_u_split_test(args, base_dataset.targets)
 
     train_labeled_dataset = CIFAR10SSL(
         args.data_path, train_labeled_idxs, train=True,
@@ -58,8 +58,9 @@ def get_cifar100(args):
     transform_labeled = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.RandomCrop(size=args.resize,
-                              padding=int(args.resize*0.125),
-                              padding_mode='reflect'),
+                              padding=int(args.resize * 0.125),
+                              fill=128,
+                              padding_mode='constant'),
         transforms.ToTensor(),
         transforms.Normalize(mean=cifar100_mean, std=cifar100_std)])
 
@@ -142,14 +143,16 @@ class TransformMPL(object):
         self.ori = transforms.Compose([
             transforms.RandomHorizontalFlip(),
             transforms.RandomCrop(size=args.resize,
-                                  padding=int(args.resize*0.125),
-                                  padding_mode='reflect')])
+                                  padding=int(args.resize * 0.125),
+                                  fill=128,
+                                  padding_mode='constant')])
         self.aug = transforms.Compose([
             transforms.RandomHorizontalFlip(),
             transforms.RandomCrop(size=args.resize,
-                                  padding=int(args.resize*0.125),
-                                  padding_mode='reflect'),
-            RandAugment(n=n, m=m)])
+                                  padding=int(args.resize * 0.125),
+                                  fill=128,
+                                  padding_mode='constant'),
+            RandAugmentCIFAR(n=n, m=m)])
         self.normalize = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)])
