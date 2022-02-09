@@ -177,13 +177,13 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
 
             t_loss_l = criterion(t_logits_l, targets)
 
-            soft_pseudo_label = torch.softmax(t_logits_uw.detach()/args.temperature, dim=-1)
+            soft_pseudo_label = torch.softmax(t_logits_uw.detach() / args.temperature, dim=-1)
             max_probs, hard_pseudo_label = torch.max(soft_pseudo_label, dim=-1)
             mask = max_probs.ge(args.threshold).float()
             t_loss_u = torch.mean(
                 -(soft_pseudo_label * torch.log_softmax(t_logits_us, dim=-1)).sum(dim=-1) * mask
             )
-            weight_u = args.lambda_u * min(1., (step+1) / args.uda_steps)
+            weight_u = args.lambda_u * min(1., (step + 1) / args.uda_steps)
             t_loss_uda = t_loss_l + weight_u * t_loss_u
 
             s_images = torch.cat((images_l, images_us))
@@ -255,8 +255,8 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             args.writer.add_scalar("lr", get_lr(s_optimizer), step)
             wandb.log({"lr": get_lr(s_optimizer)})
 
-        args.num_eval = step//args.eval_step
-        if (step+1) % args.eval_step == 0:
+        args.num_eval = step // args.eval_step
+        if (step + 1) % args.eval_step == 0:
             pbar.close()
             if args.local_rank in [-1, 0]:
                 args.writer.add_scalar("train/1.s_loss", s_losses.avg, args.num_eval)
@@ -493,7 +493,7 @@ def main():
     unlabeled_loader = DataLoader(
         unlabeled_dataset,
         sampler=train_sampler(unlabeled_dataset),
-        batch_size=args.batch_size*args.mu,
+        batch_size=args.batch_size * args.mu,
         num_workers=args.workers,
         drop_last=True)
 
@@ -552,12 +552,12 @@ def main():
     t_optimizer = optim.SGD(teacher_parameters,
                             lr=args.teacher_lr,
                             momentum=args.momentum,
-                            # weight_decay=args.weight_decay,
+                            weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
     s_optimizer = optim.SGD(student_parameters,
                             lr=args.student_lr,
                             momentum=args.momentum,
-                            # weight_decay=args.weight_decay,
+                            weight_decay=args.weight_decay,
                             nesterov=args.nesterov)
 
     t_scheduler = get_cosine_schedule_with_warmup(t_optimizer,
