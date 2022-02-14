@@ -1,4 +1,5 @@
 .vscode
+wandb/
 results/
 *.npz
 *.jpg
