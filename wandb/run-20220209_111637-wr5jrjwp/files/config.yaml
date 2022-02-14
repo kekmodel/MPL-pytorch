@@ -1,0 +1,170 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.12.9
+    code_path: code/main.py
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    python_version: 3.8.12
+    start_time: 1644405397
+    t:
+      1:
+      - 1
+      2:
+      - 1
+      3:
+      - 13
+      - 16
+      4: 3.8.12
+      5: 0.12.9
+      8:
+      - 5
+amp:
+  desc: null
+  value: true
+batch_size:
+  desc: null
+  value: 128
+best_top1:
+  desc: null
+  value: 0.0
+best_top5:
+  desc: null
+  value: 0.0
+data_path:
+  desc: null
+  value: ./data
+dataset:
+  desc: null
+  value: cifar10
+device:
+  desc: null
+  value: cuda:0
+ema:
+  desc: null
+  value: 0.995
+eval_step:
+  desc: null
+  value: 1000
+evaluate:
+  desc: null
+  value: false
+expand_labels:
+  desc: null
+  value: true
+finetune:
+  desc: null
+  value: false
+finetune_batch_size:
+  desc: null
+  value: 512
+finetune_epochs:
+  desc: null
+  value: 125
+finetune_lr:
+  desc: null
+  value: 1.0e-05
+finetune_momentum:
+  desc: null
+  value: 0
+finetune_weight_decay:
+  desc: null
+  value: 0
+gpu:
+  desc: null
+  value: 0
+grad_clip:
+  desc: null
+  value: 1000000000.0
+label_smoothing:
+  desc: null
+  value: 0.15
+lambda_u:
+  desc: null
+  value: 8.0
+local_rank:
+  desc: null
+  value: -1
+momentum:
+  desc: null
+  value: 0.9
+mu:
+  desc: null
+  value: 7
+name:
+  desc: null
+  value: cifar10-4K.5_ori
+nesterov:
+  desc: null
+  value: true
+num_classes:
+  desc: null
+  value: 10
+num_labeled:
+  desc: null
+  value: 4000
+randaug:
+  desc: null
+  value:
+  - 2
+  - 16
+resize:
+  desc: null
+  value: 32
+resume:
+  desc: null
+  value: ''
+save_path:
+  desc: null
+  value: ./checkpoint
+seed:
+  desc: null
+  value: 5
+start_step:
+  desc: null
+  value: 0
+student_dropout:
+  desc: null
+  value: 0.2
+student_lr:
+  desc: null
+  value: 0.05
+student_wait_steps:
+  desc: null
+  value: 3000
+teacher_dropout:
+  desc: null
+  value: 0.2
+teacher_lr:
+  desc: null
+  value: 0.05
+temperature:
+  desc: null
+  value: 0.7
+threshold:
+  desc: null
+  value: 0.6
+total_steps:
+  desc: null
+  value: 300000
+uda_steps:
+  desc: null
+  value: 5000.0
+warmup_steps:
+  desc: null
+  value: 5000
+weight_decay:
+  desc: null
+  value: 0.0005
+workers:
+  desc: null
+  value: 4
+world_size:
+  desc: null
+  value: 1
+writer:
+  desc: null
+  value: <torch.utils.tensorboard.writer.SummaryWriter object at 0x7f8788b20790>

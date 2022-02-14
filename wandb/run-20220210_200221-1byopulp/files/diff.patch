@@ -1,0 +1,35 @@
+diff --git a/main.py b/main.py
+index d3708ac..9b01b63 100644
+--- a/main.py
++++ b/main.py
+@@ -56,7 +56,7 @@ parser.add_argument('--resume', default='', type=str, help='path to checkpoint')
+ parser.add_argument('--evaluate', action='store_true', help='only evaluate model on validation set')
+ parser.add_argument('--finetune', action='store_true',
+                     help='only finetune model on labeled dataset')
+-parser.add_argument('--finetune-epochs', default=125, type=int, help='finetune epochs')
++parser.add_argument('--finetune-epochs', default=625, type=int, help='finetune epochs')
+ parser.add_argument('--finetune-batch-size', default=512, type=int, help='finetune batch size')
+ parser.add_argument('--finetune-lr', default=1e-5, type=float, help='finetune learning late')
+ parser.add_argument('--finetune-weight-decay', default=0, type=float, help='finetune weight decay')
+@@ -212,15 +212,17 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
+             s_loss_l_new = F.cross_entropy(s_logits_l.detach(), targets)
+ 
+             # theoretically correct formula (https://github.com/kekmodel/MPL-pytorch/issues/6)
+-            dot_product = s_loss_l_old - s_loss_l_new
++            # dot_product = s_loss_l_old - s_loss_l_new
+ 
+             # author's code formula
+-            # dot_product = s_loss_l_new - s_loss_l_old
++            dot_product = s_loss_l_new - s_loss_l_old
+             # moving_dot_product = moving_dot_product * 0.99 + dot_product * 0.01
+             # dot_product = dot_product - moving_dot_product
+ 
+-            _, hard_pseudo_label = torch.max(t_logits_us.detach(), dim=-1)
+-            t_loss_mpl = dot_product * F.cross_entropy(t_logits_us, hard_pseudo_label)
++            # _, hard_pseudo_label = torch.max(t_logits_us.detach(), dim=-1)
++            # t_loss_mpl = dot_product * F.cross_entropy(t_logits_us, hard_pseudo_label)
++            #test
++            t_loss_mpl = torch.tensor(0.).to(args.device)
+             t_loss = t_loss_uda + t_loss_mpl
+ 
+         t_scaler.scale(t_loss).backward()

@@ -19,10 +19,10 @@ def reduce_tensor(tensor, n):
 
 
 def create_loss_fn(args):
-    if args.label_smoothing > 0:
-        criterion = SmoothCrossEntropy(alpha=args.label_smoothing)
-    else:
-        criterion = nn.CrossEntropyLoss()
+    # if args.label_smoothing > 0:
+    #     criterion = SmoothCrossEntropyV2(alpha=args.label_smoothing)
+    # else:  
+    criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
     return criterion.to(args.device)
 
 
@@ -83,12 +83,42 @@ class SmoothCrossEntropy(nn.Module):
         self.alpha = alpha
 
     def forward(self, logits, labels):
-        num_classes = logits.shape[-1]
-        alpha_div_k = self.alpha / num_classes
-        target_probs = F.one_hot(labels, num_classes=num_classes).float() * \
-            (1. - self.alpha) + alpha_div_k
-        loss = -(target_probs * torch.log_softmax(logits, dim=-1)).sum(dim=-1)
-        return loss.mean()
+        if self.alpha == 0:
+            loss = F.cross_entropy(logits, labels)
+        else:
+            num_classes = logits.shape[-1]
+            alpha_div_k = self.alpha / num_classes
+            target_probs = F.one_hot(labels, num_classes=num_classes).float() * \
+                (1. - self.alpha) + alpha_div_k
+            loss = (-(target_probs * torch.log_softmax(logits, dim=-1)).sum(dim=-1)).mean()
+        return loss
+
+
+class SmoothCrossEntropyV2(nn.Module):
+    """
+    NLL loss with label smoothing.
+    """
+
+    def __init__(self, label_smoothing=0.1):
+        """
+        Constructor for the LabelSmoothing module.
+        :param smoothing: label smoothing factor
+        """
+        super().__init__()
+        assert label_smoothing < 1.0
+        self.smoothing = label_smoothing
+        self.confidence = 1. - label_smoothing
+
+    def forward(self, x, target):
+        if self.smoothing == 0:
+            loss = F.cross_entropy(x, target)
+        else:
+            logprobs = F.log_softmax(x, dim=-1)
+            nll_loss = -logprobs.gather(dim=-1, index=target.unsqueeze(1))
+            nll_loss = nll_loss.squeeze(1)
+            smooth_loss = -logprobs.mean(dim=-1)
+            loss = (self.confidence * nll_loss + self.smoothing * smooth_loss).mean()
+        return loss
 
 
 class AverageMeter(object):

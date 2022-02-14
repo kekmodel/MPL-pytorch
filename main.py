@@ -56,11 +56,11 @@ parser.add_argument('--resume', default='', type=str, help='path to checkpoint')
 parser.add_argument('--evaluate', action='store_true', help='only evaluate model on validation set')
 parser.add_argument('--finetune', action='store_true',
                     help='only finetune model on labeled dataset')
-parser.add_argument('--finetune-epochs', default=125, type=int, help='finetune epochs')
+parser.add_argument('--finetune-epochs', default=625, type=int, help='finetune epochs')
 parser.add_argument('--finetune-batch-size', default=512, type=int, help='finetune batch size')
-parser.add_argument('--finetune-lr', default=1e-5, type=float, help='finetune learning late')
+parser.add_argument('--finetune-lr', default=3e-5, type=float, help='finetune learning late')
 parser.add_argument('--finetune-weight-decay', default=0, type=float, help='finetune weight decay')
-parser.add_argument('--finetune-momentum', default=0, type=float, help='finetune SGD Momentum')
+parser.add_argument('--finetune-momentum', default=0.9, type=float, help='finetune SGD Momentum')
 parser.add_argument('--seed', default=None, type=int, help='seed for initializing training')
 parser.add_argument('--label-smoothing', default=0, type=float, help='label smoothing alpha')
 parser.add_argument('--mu', default=7, type=int, help='coefficient of unlabeled batch size')
@@ -212,15 +212,17 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
             s_loss_l_new = F.cross_entropy(s_logits_l.detach(), targets)
 
             # theoretically correct formula (https://github.com/kekmodel/MPL-pytorch/issues/6)
-            dot_product = s_loss_l_old - s_loss_l_new
+            # dot_product = s_loss_l_old - s_loss_l_new
 
             # author's code formula
-            # dot_product = s_loss_l_new - s_loss_l_old
+            dot_product = s_loss_l_new - s_loss_l_old
             # moving_dot_product = moving_dot_product * 0.99 + dot_product * 0.01
             # dot_product = dot_product - moving_dot_product
 
             _, hard_pseudo_label = torch.max(t_logits_us.detach(), dim=-1)
             t_loss_mpl = dot_product * F.cross_entropy(t_logits_us, hard_pseudo_label)
+            # test
+            # t_loss_mpl = torch.tensor(0.).to(args.device)
             t_loss = t_loss_uda + t_loss_mpl
 
         t_scaler.scale(t_loss).backward()
@@ -362,18 +364,19 @@ def evaluate(args, test_loader, model, criterion):
         return losses.avg, top1.avg, top5.avg
 
 
-def finetune(args, train_loader, test_loader, model, criterion):
+def finetune(args, finetune_dataset, test_loader, model, criterion):
+    model.drop = nn.Identity()
     train_sampler = RandomSampler if args.local_rank == -1 else DistributedSampler
     labeled_loader = DataLoader(
-        train_loader.dataset,
-        sampler=train_sampler(train_loader.dataset),
+        finetune_dataset,
         batch_size=args.finetune_batch_size,
         num_workers=args.workers,
         pin_memory=True)
     optimizer = optim.SGD(model.parameters(),
                           lr=args.finetune_lr,
                           momentum=args.finetune_momentum,
-                          weight_decay=args.finetune_weight_decay)
+                          weight_decay=args.finetune_weight_decay,
+                          nesterov=True)
     scaler = amp.GradScaler(enabled=args.amp)
 
     logger.info("***** Running Finetuning *****")
@@ -440,7 +443,7 @@ def finetune(args, train_loader, test_loader, model, criterion):
             }, is_best, finetune=True)
         if args.local_rank in [-1, 0]:
             args.writer.add_scalar("result/finetune_acc@1", args.best_top1)
-            wandb.log({"result/fintune_acc@1": args.best_top1})
+            wandb.log({"result/finetune_acc@1": args.best_top1})
     return
 
 
@@ -482,7 +485,7 @@ def main():
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()
 
-    labeled_dataset, unlabeled_dataset, test_dataset = DATASET_GETTERS[args.dataset](args)
+    labeled_dataset, unlabeled_dataset, test_dataset, finetune_dataset = DATASET_GETTERS[args.dataset](args)
 
     if args.local_rank == 0:
         torch.distributed.barrier()
@@ -494,7 +497,7 @@ def main():
         batch_size=args.batch_size,
         num_workers=args.workers,
         drop_last=True)
-
+    
     unlabeled_loader = DataLoader(
         unlabeled_dataset,
         sampler=train_sampler(unlabeled_dataset),
@@ -615,7 +618,7 @@ def main():
     if args.finetune:
         del t_scaler, t_scheduler, t_optimizer, teacher_model, unlabeled_loader
         del s_scaler, s_scheduler, s_optimizer
-        finetune(args, labeled_loader, test_loader, student_model, criterion)
+        finetune(args, finetune_dataset, test_loader, student_model, criterion)
         return
 
     if args.evaluate:

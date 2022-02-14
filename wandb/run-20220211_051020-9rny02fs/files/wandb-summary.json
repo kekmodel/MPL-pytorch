@@ -1,0 +1,1 @@
+{"finetune/train_loss": 0.8744296169281006, "finetune/test_loss": 0.7914654974937438, "finetune/acc@1": 95.68000030517578, "finetune/acc@5": 99.55000305175781, "_runtime": 2038, "_timestamp": 1644558258, "_step": 1137, "result/fintune_acc@1": 95.8499984741211, "_wandb": {"runtime": 2042}}

@@ -5,8 +5,10 @@ import numpy as np
 from PIL import Image
 from torchvision import datasets
 from torchvision import transforms
+from torchvision.transforms import InterpolationMode
 
 from augmentation import RandAugmentCIFAR
+from augment import TrivialAugmentWide
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,10 @@ normal_std = (0.5, 0.5, 0.5)
 
 
 def get_cifar10(args):
+    if args.randaug:
+        n, m = args.randaug
+    else:
+        n, m = 2, 10  # default
     transform_labeled = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.RandomCrop(size=args.resize,
@@ -26,7 +32,17 @@ def get_cifar10(args):
                               fill=128,
                               padding_mode='constant'),
         transforms.ToTensor(),
-        transforms.Normalize(mean=cifar10_mean, std=cifar10_std)
+        transforms.Normalize(mean=cifar10_mean, std=cifar10_std),
+    ])
+    transform_finetune = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomCrop(size=args.resize,
+                              padding=int(args.resize * 0.125),
+                              fill=128,
+                              padding_mode='constant'),
+        RandAugmentCIFAR(n=n, m=m),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=cifar10_mean, std=cifar10_std),
     ])
     transform_val = transforms.Compose([
         transforms.ToTensor(),
@@ -34,13 +50,16 @@ def get_cifar10(args):
     ])
     base_dataset = datasets.CIFAR10(args.data_path, train=True, download=True)
 
-    train_labeled_idxs, train_unlabeled_idxs = x_u_split(args, base_dataset.targets)
+    train_labeled_idxs, train_unlabeled_idxs, finetune_idxs = x_u_split(args, base_dataset.targets)
 
     train_labeled_dataset = CIFAR10SSL(
         args.data_path, train_labeled_idxs, train=True,
         transform=transform_labeled
     )
-
+    finetune_dataset = CIFAR10SSL(
+        args.data_path, finetune_idxs, train=True,
+        transform=transform_finetune
+    )
     train_unlabeled_dataset = CIFAR10SSL(
         args.data_path, train_unlabeled_idxs,
         train=True,
@@ -50,17 +69,29 @@ def get_cifar10(args):
     test_dataset = datasets.CIFAR10(args.data_path, train=False,
                                     transform=transform_val, download=False)
 
-    return train_labeled_dataset, train_unlabeled_dataset, test_dataset
+    return train_labeled_dataset, train_unlabeled_dataset, test_dataset, finetune_dataset
 
 
 def get_cifar100(args):
-
+    if args.randaug:
+        n, m = args.randaug
+    else:
+        n, m = 2, 10  # default
     transform_labeled = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.RandomCrop(size=args.resize,
                               padding=int(args.resize * 0.125),
                               fill=128,
                               padding_mode='constant'),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=cifar100_mean, std=cifar100_std)])
+    transform_finetune = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomCrop(size=args.resize,
+                              padding=int(args.resize * 0.125),
+                              fill=128,
+                              padding_mode='constant'),
+        RandAugmentCIFAR(n=n, m=m),
         transforms.ToTensor(),
         transforms.Normalize(mean=cifar100_mean, std=cifar100_std)])
 
@@ -70,13 +101,16 @@ def get_cifar100(args):
 
     base_dataset = datasets.CIFAR100(args.data_path, train=True, download=True)
 
-    train_labeled_idxs, train_unlabeled_idxs = x_u_split(args, base_dataset.targets)
+    train_labeled_idxs, train_unlabeled_idxs, finetune_idxs = x_u_split(args, base_dataset.targets)
 
     train_labeled_dataset = CIFAR100SSL(
         args.data_path, train_labeled_idxs, train=True,
         transform=transform_labeled
     )
-
+    finetune_dataset = CIFAR100SSL(
+        args.data_path, finetune_idxs, train=True,
+        transform=transform_fintune
+    )
     train_unlabeled_dataset = CIFAR100SSL(
         args.data_path, train_unlabeled_idxs, train=True,
         transform=TransformMPL(args, mean=cifar100_mean, std=cifar100_std)
@@ -85,7 +119,7 @@ def get_cifar100(args):
     test_dataset = datasets.CIFAR100(args.data_path, train=False,
                                      transform=transform_val, download=False)
 
-    return train_labeled_dataset, train_unlabeled_dataset, test_dataset
+    return train_labeled_dataset, train_unlabeled_dataset, test_dataset, finetune_dataset
 
 
 def x_u_split(args, labels):
@@ -104,9 +138,13 @@ def x_u_split(args, labels):
     if args.expand_labels or args.num_labeled < args.batch_size:
         num_expand_x = math.ceil(
             args.batch_size * args.eval_step / args.num_labeled)
-        labeled_idx = np.hstack([labeled_idx for _ in range(num_expand_x)])
-    np.random.shuffle(labeled_idx)
-    return labeled_idx, unlabeled_idx
+        labeled_idx_ex = np.hstack([labeled_idx for _ in range(num_expand_x)])
+        np.random.shuffle(labeled_idx_ex)
+        np.random.shuffle(labeled_idx)
+        return labeled_idx_ex, unlabeled_idx, labeled_idx
+    else:
+        np.random.shuffle(labeled_idx)
+        return labeled_idx, unlabeled_idx, lebeled_idx
 
 
 def x_u_split_test(args, labels):
