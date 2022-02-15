@@ -107,7 +107,7 @@ def get_lr(optimizer):
     return optimizer.param_groups[0]['lr']
 
 
-def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
+def train_loop(args, labeled_loader, unlabeled_loader, test_loader, finetune_dataset,
                teacher_model, student_model, avg_student_model, criterion,
                t_optimizer, s_optimizer, t_scheduler, s_scheduler, t_scaler, s_scaler):
     logger.info("***** Running Training *****")
@@ -315,8 +315,9 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
     if args.local_rank in [-1, 0]:
         args.writer.add_scalar("result/test_acc@1", args.best_top1)
         wandb.log({"result/test_acc@1": args.best_top1})
+
     # finetune
-    del t_scaler, t_scheduler, t_optimizer, teacher_model, unlabeled_loader
+    del t_scaler, t_scheduler, t_optimizer, teacher_model, labeled_loader, unlabeled_loader
     del s_scaler, s_scheduler, s_optimizer
     ckpt_name = f'{args.save_path}/{args.name}_best.pth.tar'
     loc = f'cuda:{args.gpu}'
@@ -326,7 +327,7 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader,
         model_load_state_dict(student_model, checkpoint['avg_state_dict'])
     else:
         model_load_state_dict(student_model, checkpoint['student_state_dict'])
-    finetune(args, labeled_loader, test_loader, student_model, criterion)
+    finetune(args, finetune_dataset, test_loader, student_model, criterion)
     return
 
 
@@ -497,7 +498,7 @@ def main():
         batch_size=args.batch_size,
         num_workers=args.workers,
         drop_last=True)
-    
+
     unlabeled_loader = DataLoader(
         unlabeled_dataset,
         sampler=train_sampler(unlabeled_dataset),
@@ -629,7 +630,7 @@ def main():
 
     teacher_model.zero_grad()
     student_model.zero_grad()
-    train_loop(args, labeled_loader, unlabeled_loader, test_loader,
+    train_loop(args, labeled_loader, unlabeled_loader, test_loader, finetune_dataset,
                teacher_model, student_model, avg_student_model, criterion,
                t_optimizer, s_optimizer, t_scheduler, s_scheduler, t_scaler, s_scaler)
     return
