@@ -5,10 +5,9 @@ import numpy as np
 from PIL import Image
 from torchvision import datasets
 from torchvision import transforms
-from torchvision.transforms import InterpolationMode
+from torchvision.transforms import InterpolationMode, TrivialAugmentWide
 
 from augmentation import RandAugmentCIFAR
-from augment import TrivialAugmentWide
 
 logger = logging.getLogger(__name__)
 
