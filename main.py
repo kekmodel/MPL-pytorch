@@ -145,6 +145,7 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader, finetune_dat
         end = time.time()
 
         try:
+            # error occurs ↓
             # images_l, targets = labeled_iter.next()
             images_l, targets = next(labeled_iter)
         except:
@@ -152,10 +153,12 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader, finetune_dat
                 labeled_epoch += 1
                 labeled_loader.sampler.set_epoch(labeled_epoch)
             labeled_iter = iter(labeled_loader)
+            # error occurs ↓
             # images_l, targets = labeled_iter.next()
             images_l, targets = next(labeled_iter)
 
         try:
+            # error occurs ↓
             # (images_uw, images_us), _ = unlabeled_iter.next()
             (images_uw, images_us), _ = next(unlabeled_iter)
         except:
@@ -163,6 +166,7 @@ def train_loop(args, labeled_loader, unlabeled_loader, test_loader, finetune_dat
                 unlabeled_epoch += 1
                 unlabeled_loader.sampler.set_epoch(unlabeled_epoch)
             unlabeled_iter = iter(unlabeled_loader)
+            # error occurs ↓
             # (images_uw, images_us), _ = unlabeled_iter.next()
             (images_uw, images_us), _ = next(unlabeled_iter)
 
