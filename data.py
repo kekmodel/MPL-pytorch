@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 from torchvision import datasets
 from torchvision import transforms
-from torchvision.transforms import InterpolationMode, TrivialAugmentWide
+from torchvision.transforms import InterpolationMode
 
 from augmentation import RandAugmentCIFAR
 
