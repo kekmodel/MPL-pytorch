@@ -107,3 +107,15 @@ Use wandb
 - wandb
 - numpy
 - tqdm
+
+## Citations
+```
+@misc{jd2021mpl,
+  author = {Jungdae Kim},
+  title = {PyTorch implementation of Meta Pseudo Labels},
+  year = {2021},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/kekmodel/MPL-pytorch}}
+}
+```
