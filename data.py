@@ -143,7 +143,7 @@ def x_u_split(args, labels):
         return labeled_idx_ex, unlabeled_idx, labeled_idx
     else:
         np.random.shuffle(labeled_idx)
-        return labeled_idx, unlabeled_idx, lebeled_idx
+        return labeled_idx, unlabeled_idx, labeled_idx
 
 
 def x_u_split_test(args, labels):
